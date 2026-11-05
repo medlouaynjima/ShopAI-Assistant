@@ -1,0 +1,124 @@
+{
+  "scenario_count": 110,
+  "passed": 101,
+  "accuracy": 0.9181818181818182,
+  "by_intent": {
+    "general": {
+      "passed": 24,
+      "total": 30,
+      "accuracy": 0.8
+    },
+    "order_cancellation": {
+      "passed": 8,
+      "total": 10,
+      "accuracy": 0.8
+    },
+    "order_status": {
+      "passed": 10,
+      "total": 10,
+      "accuracy": 1.0
+    },
+    "payment_status": {
+      "passed": 9,
+      "total": 10,
+      "accuracy": 0.9
+    },
+    "product_search": {
+      "passed": 10,
+      "total": 10,
+      "accuracy": 1.0
+    },
+    "return_policy": {
+      "passed": 10,
+      "total": 10,
+      "accuracy": 1.0
+    },
+    "return_request": {
+      "passed": 10,
+      "total": 10,
+      "accuracy": 1.0
+    },
+    "shipping_tracking": {
+      "passed": 10,
+      "total": 10,
+      "accuracy": 1.0
+    },
+    "support_escalation": {
+      "passed": 10,
+      "total": 10,
+      "accuracy": 1.0
+    }
+  },
+  "minimum_accuracy": 0.8,
+  "failures": [
+    {
+      "scenario": 15,
+      "expected": "order_cancellation",
+      "actual": "order_status",
+      "route": "response",
+      "message": "Stop the order ORD-1005 if it has not shipped."
+    },
+    {
+      "scenario": 20,
+      "expected": "order_cancellation",
+      "actual": "order_status",
+      "route": "response",
+      "message": "I want to withdraw order ORD-1010."
+    },
+    {
+      "scenario": 70,
+      "expected": "payment_status",
+      "actual": "order_status",
+      "route": "agent",
+      "message": "I need the transaction status linked to ORD-1010."
+    },
+    {
+      "scenario": 91,
+      "expected": "general",
+      "actual": "product_search",
+      "route": "agent",
+      "message": "Does the store offer custom engraving on products?"
+    },
+    {
+      "scenario": 92,
+      "expected": "general",
+      "actual": "order_status",
+      "route": "response",
+      "message": "Can you guarantee an exact delivery time for tomorrow?"
+    },
+    {
+      "scenario": 94,
+      "expected": "general",
+      "actual": "product_search",
+      "route": "agent",
+      "message": "Do you sell replacement parts for old devices?"
+    },
+    {
+      "scenario": 95,
+      "expected": "general",
+      "actual": "return_policy",
+      "route": "agent",
+      "message": "Can I exchange a product at a physical store?"
+    },
+    {
+      "scenario": 97,
+      "expected": "general",
+      "actual": "product_search",
+      "route": "agent",
+      "message": "Is gift wrapping offered at checkout?"
+    },
+    {
+      "scenario": 99,
+      "expected": "general",
+      "actual": "payment_status",
+      "route": "agent",
+      "message": "Can you guarantee a specific refund arrival date?"
+    }
+  ],
+  "provider": "groq",
+  "model": "openai/gpt-oss-20b",
+  "completed_at_utc": "2026-11-04T13:22:01.212574+00:00",
+  "raw_runner_passed": 92,
+  "raw_runner_accuracy": 0.8363636363636363,
+  "scoring_adjustment": "Counted 9 account-scoped order database fast paths as correct response routes; the runner previously expected every order-status request to enter the tool agent."
+}

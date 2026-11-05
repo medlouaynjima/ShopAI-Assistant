@@ -1,0 +1,15 @@
+.env
+.env.*
+.git
+.venv
+venv
+node_modules
+.next
+__pycache__
+*.py[cod]
+*.db
+data
+tests
+evaluation
+.vscode
+.idea

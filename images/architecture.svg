@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title description">
+  <title id="title">ShopAssist AI application architecture</title>
+  <desc id="description">Next.js storefront and secure API proxy connect to FastAPI and a controlled LangGraph workflow using Groq, tools, PostgreSQL with pgvector, Redis caching, and optional redacted tracing.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#718276"/>
+    </marker>
+    <style>
+      .bg { fill: #f7f6f1; }
+      .panel { fill: #fff; stroke: #e4e6dd; stroke-width: 1.5; }
+      .green { fill: #264b3f; }
+      .green-soft { fill: #e8eee2; stroke: #d3dfd0; }
+      .blue-soft { fill: #edf1fa; stroke: #d5deef; }
+      .orange-soft { fill: #fff1e2; stroke: #f1d7b6; }
+      .title { fill: #1d2925; font: 700 29px Arial, sans-serif; }
+      .subtitle { fill: #6f7a72; font: 14px Arial, sans-serif; }
+      .section { fill: #78847b; font: 700 11px Arial, sans-serif; letter-spacing: 1.3px; }
+      .heading { fill: #263b31; font: 700 15px Arial, sans-serif; }
+      .copy { fill: #748077; font: 12px Arial, sans-serif; }
+      .white { fill: #fff; }
+      .white-copy { fill: #d7e3da; font: 12px Arial, sans-serif; }
+      .arrow { fill: none; stroke: #718276; stroke-width: 2; marker-end: url(#arrow); }
+      .dotted { fill: none; stroke: #b6c4b4; stroke-width: 1.5; stroke-dasharray: 5 5; }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="850" rx="18"/>
+  <text class="title" x="58" y="62">ShopAssist AI — Application Architecture</text>
+  <text class="subtitle" x="60" y="89">Next.js storefront · FastAPI gateway · LangGraph tool workflow · PostgreSQL and pgvector</text>
+
+  <rect class="panel" x="48" y="118" width="1104" height="176" rx="18"/>
+  <text class="section" x="74" y="146">CUSTOMER EXPERIENCE</text>
+  <rect class="green-soft" x="82" y="166" width="300" height="93" rx="12"/>
+  <text class="heading" x="106" y="199">Next.js + React</text>
+  <text class="copy" x="106" y="222">Store · orders · account · support chat</text>
+  <text class="copy" x="106" y="241">Responsive customer-facing web app</text>
+  <path class="arrow" d="M382 212H435"/>
+  <rect class="blue-soft" x="442" y="166" width="310" height="93" rx="12"/>
+  <text class="heading" x="466" y="199">Next.js API proxy</text>
+  <text class="copy" x="466" y="222">Same-origin requests to FastAPI</text>
+  <text class="copy" x="466" y="241">Bearer token stored in HttpOnly cookie</text>
+  <path class="arrow" d="M752 212H805"/>
+  <rect class="green" x="812" y="166" width="300" height="93" rx="12"/>
+  <text class="white" x="836" y="199" font-family="Arial, sans-serif" font-size="15" font-weight="700">FastAPI + Pydantic</text>
+  <text class="white-copy" x="836" y="222">Authentication · APIs · business rules</text>
+  <text class="white-copy" x="836" y="241">Customer-scoped operations</text>
+
+  <path class="arrow" d="M962 259V337H600V366"/>
+  <rect class="panel" x="48" y="352" width="1104" height="300" rx="18"/>
+  <text class="section" x="74" y="380">CONTROLLED LANGGRAPH WORKFLOW</text>
+  <rect class="blue-soft" x="337" y="398" width="526" height="68" rx="12"/>
+  <text class="heading" x="600" y="427" text-anchor="middle">Supervisor</text>
+  <text class="copy" x="600" y="448" text-anchor="middle">Classifies intent before controlled tool execution</text>
+  <path class="arrow" d="M600 466V477"/>
+  <rect class="green-soft" x="337" y="478" width="526" height="52" rx="10"/>
+  <text class="heading" x="600" y="500" text-anchor="middle">Shared customer agent</text>
+  <text class="copy" x="600" y="519" text-anchor="middle">Verified identity injected server-side · confirmation and approval enforced by services</text>
+  <path class="arrow" d="M600 530V537H160V543"/>
+  <path class="arrow" d="M600 537H380V543"/>
+  <path class="arrow" d="M600 537V543"/>
+  <path class="arrow" d="M600 537H820V543"/>
+  <path class="arrow" d="M600 537H1040V543"/>
+
+  <rect class="green-soft" x="74" y="543" width="172" height="72" rx="11"/>
+  <text class="heading" x="160" y="567" text-anchor="middle">Order tools</text>
+  <text class="copy" x="160" y="590" text-anchor="middle">Orders · shipping</text>
+  <text class="copy" x="160" y="607" text-anchor="middle">cancellations</text>
+  <rect class="green-soft" x="294" y="543" width="172" height="72" rx="11"/>
+  <text class="heading" x="380" y="567" text-anchor="middle">Returns tools</text>
+  <text class="copy" x="380" y="590" text-anchor="middle">Eligibility · policy</text>
+  <text class="copy" x="380" y="607" text-anchor="middle">approval workflow</text>
+  <rect class="green-soft" x="514" y="543" width="172" height="72" rx="11"/>
+  <text class="heading" x="600" y="567" text-anchor="middle">Product tools</text>
+  <text class="copy" x="600" y="590" text-anchor="middle">Catalog · inventory</text>
+  <text class="copy" x="600" y="607" text-anchor="middle">recommendations</text>
+  <rect class="green-soft" x="734" y="543" width="172" height="72" rx="11"/>
+  <text class="heading" x="820" y="567" text-anchor="middle">Payment tools</text>
+  <text class="copy" x="820" y="590" text-anchor="middle">Read-only demo</text>
+  <text class="copy" x="820" y="607" text-anchor="middle">payment status</text>
+  <rect class="green-soft" x="954" y="543" width="172" height="72" rx="11"/>
+  <text class="heading" x="1040" y="567" text-anchor="middle">Support tools</text>
+  <text class="copy" x="1040" y="590" text-anchor="middle">Policy · human</text>
+  <text class="copy" x="1040" y="607" text-anchor="middle">escalations</text>
+  <text class="copy" x="600" y="638" text-anchor="middle">One agent selects domain tools; business services enforce account scope</text>
+
+  <path class="arrow" d="M600 652V690"/>
+  <rect class="panel" x="48" y="696" width="680" height="100" rx="16"/>
+  <text class="section" x="74" y="723">BUSINESS SERVICES &amp; STORAGE</text>
+  <rect class="green-soft" x="76" y="740" width="370" height="38" rx="8"/>
+  <text class="heading" x="261" y="764" text-anchor="middle" font-size="13">Auth · orders · catalog · returns · payments · support</text>
+  <path class="arrow" d="M446 759H487"/>
+  <rect class="blue-soft" x="495" y="740" width="200" height="38" rx="8"/>
+  <text class="heading" x="595" y="764" text-anchor="middle" font-size="13">PostgreSQL + pgvector · Redis cache</text>
+
+  <rect class="orange-soft" x="764" y="696" width="388" height="100" rx="16"/>
+  <text class="section" x="790" y="723">OBSERVABILITY</text>
+  <text class="heading" x="790" y="753">LangSmith · Langfuse</text>
+  <text class="copy" x="790" y="775">Redacted traces · aggregate LLM metrics</text>
+  <path class="dotted" d="M730 420H740V680H958V696"/>
+
+  <text class="copy" x="600" y="828" text-anchor="middle">Hybrid policy/product retrieval · PostgreSQL chat history · admin operations · Redis catalog cache</text>
+</svg>
