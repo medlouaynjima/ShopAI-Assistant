@@ -84,6 +84,6 @@ Detailed evidence: [routing evaluation](../evaluation/PHASE1_REPORT.md), [RAG ev
 - There is no connected carrier API; tracking is read from demo data.
 - Email verification needs working SMTP credentials.
 - Admin access uses a shared key and needs replacement with staff roles before production.
-- Rate limits and LLM metrics are currently process-local; multi-instance deployment needs shared storage.
+- Rate limits use atomic Redis windows when Redis is reachable, with a documented process-local fallback during Redis outages. Aggregate LLM metrics remain process-local; multi-instance deployment needs shared metrics storage.
 - The MCP server is a local stdio integration, not a public multi-user MCP service.
 - Never use this demo to process real customer payments or production personal data.

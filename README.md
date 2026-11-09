@@ -338,7 +338,7 @@ These demo endpoints keep an order unchanged until the customer confirms the act
 5. `POST /api/v1/admin/returns/{rma_number}/approve` requires the `X-Admin-Key` header. Set `ADMIN_API_KEY` in `.env` to enable it. Approval is recorded in the configured database; this demo does **not** transfer money.
 6. `POST /api/v1/support/tickets` records an escalation and returns its ticket ID.
 
-Customer operations and chat use an email-verified account and an expiring, revocable bearer session. The admin dashboard uses a shared key stored in an HttpOnly cookie and records privileged changes in an audit table; this is not a replacement for production identity and role management. Do not use this portfolio app with real customer/payment data without production authorization, rate limiting, and data-retention controls.
+Customer operations and chat use an email-verified account and an expiring, revocable bearer session. The admin dashboard uses a shared key stored in an HttpOnly cookie and records privileged changes in an audit table; this is not a replacement for production identity and role management. The demo includes configurable API rate limits, but do not use it with real customer/payment data without production authorization, security review, and data-retention controls.
 
 ---
 
