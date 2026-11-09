@@ -1,0 +1,8 @@
+sku,name,category,description,price,inventory,source_url,source_checked
+MORROW-LOGI-MX3S,Logitech MX Master 3S,Accessories,"Wireless mouse with quiet clicks and an 8,000 DPI sensor that tracks on glass.",99.99,12,https://www.logitech.com/en-us/shop/p/mx-master-3s,2026-11-09
+MORROW-LOGI-MXMECHMINI,Logitech MX Mechanical Mini,Computers,"Compact illuminated wireless keyboard with low-profile mechanical switches and multi-device support.",159.99,8,https://www.logitech.com/en-us/shop/p/mx-mechanical-mini,2026-11-09
+MORROW-LOGI-BRIO500,Logitech Brio 500,Computers,"Full HD 1080p webcam with automatic light correction, auto-framing, and Show Mode.",129.99,7,https://www.logitech.com/en-us/shop/p/brio-500-webcam,2026-11-09
+MORROW-SONY-WH1000XM5,Sony WH-1000XM5,Audio,"Wireless noise-cancelling over-ear headphones with Adaptive Sound Control and Speak-to-Chat.",399.99,5,https://electronics.sony.com/audio/headphones/headband/p/wh1000xm5-l,2026-11-09
+MORROW-ANKER-737,Anker 737 Power Bank (PowerCore 24K),Mobile,"24,000mAh portable power bank with USB-C fast charging up to 140W.",109.99,9,https://www.anker.com/collections/emergency-power-banks,2026-11-09
+MORROW-ANKER-735,Anker 735 Charger (Nano II 65W),Mobile,"Compact 65W GaN wall charger for charging compatible phones, tablets, and laptops.",29.99,15,https://www.anker.com/collections/usb-c-charger,2026-11-09
+MORROW-SAMSUNG-M5-27,Samsung 27-inch Smart Monitor M5 M50F,Computers,"27-inch Full HD smart monitor with built-in streaming TV apps.",229.99,4,https://www.samsung.com/us/monitors/smart/27-inch-smart-monitor-m5-m50f-fhd-sku-ls27fm502enxza/,2026-11-09

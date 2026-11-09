@@ -4,16 +4,26 @@ Unit & Integration tests for the E-Commerce Support Agent.
 import json
 import time
 import uuid
+import tempfile
 from datetime import datetime
 
 import pytest
 from src.services.database import get_connection, init_db
+import src.services.database as database
+from src.config import settings
 
 
 @pytest.fixture(scope="module", autouse=True)
 def _setup_database():
-    """Initialize the SQLite database once before all tests."""
-    init_db()
+    """Use isolated SQLite fixtures even when a developer has PostgreSQL configured."""
+    previous_url, previous_redis, previous_path = settings.database_url, settings.redis_url, database.DB_PATH
+    with tempfile.TemporaryDirectory(prefix="shopassist-agent-tests-") as temp_dir:
+        settings.database_url = ""
+        settings.redis_url = ""
+        database.DB_PATH = __import__("pathlib").Path(temp_dir) / "agent-tests.sqlite3"
+        init_db()
+        yield
+    settings.database_url, settings.redis_url, database.DB_PATH = previous_url, previous_redis, previous_path
 
 
 @pytest.fixture

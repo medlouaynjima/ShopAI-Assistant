@@ -1,0 +1,73 @@
+{
+  "status": "complete",
+  "provider": "groq",
+  "model": "openai/gpt-oss-20b",
+  "completed_at_utc": "2026-11-09T09:57:00.784722+00:00",
+  "database": "temporary seeded SQLite (isolated)",
+  "case_count": 1,
+  "scored_cases": 1,
+  "not_run_case_ids": [],
+  "provider_errors": [],
+  "functional_failures": [],
+  "metrics": {
+    "tool_selection": {
+      "passed": 1,
+      "total": 1,
+      "accuracy": 1.0
+    },
+    "tool_arguments": {
+      "passed": 1,
+      "total": 1,
+      "accuracy": 1.0
+    },
+    "tool_execution": {
+      "passed": 1,
+      "total": 1,
+      "accuracy": 1.0
+    },
+    "final_answer": {
+      "passed": 1,
+      "total": 1,
+      "accuracy": 1.0
+    },
+    "policy_compliance": {
+      "passed": 1,
+      "total": 1,
+      "accuracy": 1.0
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "out_of_stock_product",
+      "status": "scored",
+      "selected_tools": [
+        "search_products"
+      ],
+      "tool_calls": [
+        {
+          "name": "search_products",
+          "args": {
+            "query": "Laptop Sleeve"
+          }
+        }
+      ],
+      "unexpected_tools": [],
+      "answer_excerpt": "The **Laptop Sleeve (SKU‑1101)** is currently **out of stock**. If you’d like, I can keep you updated when it becomes available or suggest a similar product that’s in stock.",
+      "missing_answer_terms": [],
+      "missing_answer_groups": [],
+      "forbidden_answer_terms_found": [],
+      "checks": {
+        "tool_selection": true,
+        "tool_arguments": true,
+        "tool_execution": true,
+        "final_answer": true,
+        "policy_compliance": true
+      }
+    }
+  ],
+  "limitations": [
+    "Agent tool quality is a small seeded-data live sample, not a broad statistical benchmark.",
+    "Supervisor classification is measured separately by the 110-scenario routing evaluation.",
+    "Final-answer checks assert required factual phrases and should be interpreted alongside the saved answer excerpts."
+  ]
+}

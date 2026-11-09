@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ShopAssist AI — Reel draft</title>
+  <style>
+    :root { color-scheme: light; --paper:#f7f6f1; --ink:#202923; --green:#315c49; --muted:#66736b; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; gap:16px; padding:20px; background:#1b2821; color:white; font:14px Arial,sans-serif; }
+    .preview { display:grid; justify-items:center; gap:12px; }
+    canvas { display:block; width:auto; height:min(78vh,960px); max-width:88vw; border-radius:12px; background:var(--paper); box-shadow:0 24px 80px #0008; }
+    .controls { display:flex; align-items:center; justify-content:center; gap:12px; min-height:44px; }
+    button, a { display:inline-flex; align-items:center; justify-content:center; min-height:42px; border:1px solid #698875; border-radius:9px; background:#315c49; padding:0 18px; color:#fff; font-weight:700; text-decoration:none; cursor:pointer; }
+    [hidden] { display:none !important; }
+    button:disabled { opacity:.55; cursor:wait; }
+    .hint { color:#c9d3cb; font-size:12px; text-align:center; }
+  </style>
+</head>
+<body>
+  <main class="preview">
+    <canvas id="reel" width="1080" height="1920" aria-label="Animated ShopAssist AI promotional reel"></canvas>
+    <div class="controls"><button id="start">Render 20-second reel</button><a id="download" hidden>Download video</a></div>
+    <div class="hint" id="hint">Vertical 9:16 · Silent draft · Captions included</div>
+  </main>
+  <script>
+    const canvas = document.getElementById('reel');
+    const ctx = canvas.getContext('2d');
+    const startButton = document.getElementById('start');
+    const downloadLink = document.getElementById('download');
+    const hint = document.getElementById('hint');
+    const W = canvas.width, H = canvas.height, DURATION = 20;
+    const C = { paper:'#f7f6f1', ink:'#202923', green:'#315c49', deep:'#244637', sage:'#e8ede3', muted:'#66736b', rust:'#bd6747', white:'#fffefa', line:'#e4e5dc', pale:'#eff1eb' };
+    const mimeCandidates=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+    const preferredMime=mimeCandidates.find(type=>MediaRecorder.isTypeSupported(type));
+
+    function rounded(x,y,w,h,r,fill,stroke) {
+      ctx.beginPath(); ctx.roundRect(x,y,w,h,r);
+      if (fill) { ctx.fillStyle=fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle=stroke; ctx.lineWidth=2; ctx.stroke(); }
+    }
+    function text(value,x,y,size=34,color=C.ink,weight=400,font='Arial',align='left') {
+      ctx.font=`${weight} ${size}px ${font}`; ctx.fillStyle=color; ctx.textAlign=align; ctx.textBaseline='alphabetic'; ctx.fillText(value,x,y);
+    }
+    function wrap(value,x,y,maxWidth,lineHeight,size=30,color=C.ink,weight=400,font='Arial') {
+      ctx.font=`${weight} ${size}px ${font}`; ctx.fillStyle=color; ctx.textAlign='left';
+      let line='';
+      for (const word of value.split(' ')) {
+        const next=line ? `${line} ${word}` : word;
+        if (ctx.measureText(next).width>maxWidth && line) { ctx.fillText(line,x,y); y+=lineHeight; line=word; }
+        else line=next;
+      }
+      if (line) ctx.fillText(line,x,y);
+      return y;
+    }
+    function pill(label,x,y,fill=C.sage,color=C.green) {
+      ctx.font='700 20px Arial'; const width=ctx.measureText(label).width+34;
+      rounded(x,y-30,width,44,22,fill); text(label,x+17,y,18,color,700); return width;
+    }
+    function panel(x,y,w,h,fill=C.white) {
+      ctx.save(); ctx.shadowColor='#21372a18'; ctx.shadowBlur=30; ctx.shadowOffsetY=10;
+      rounded(x,y,w,h,26,fill,C.line); ctx.restore();
+    }
+    function background(t) {
+      const g=ctx.createLinearGradient(0,0,W,H); g.addColorStop(0,'#f8f7f2'); g.addColorStop(1,'#edf0e8'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      ctx.save(); ctx.globalAlpha=.22;
+      for (let i=0;i<8;i++) { ctx.beginPath(); ctx.arc(910,245,82+i*55+t*4,0,Math.PI*2); ctx.strokeStyle='#b8c6b7'; ctx.lineWidth=2; ctx.stroke(); }
+      ctx.restore();
+    }
+    function brand() {
+      rounded(72,78,58,58,18,C.green); text('M',101,119,36,'#fff',700,'Georgia','center');
+      text('ShopAssist',151,119,32,C.ink,700); text('AI',336,119,25,C.rust,700);
+      text('MULTI-AGENT E-COMMERCE SUPPORT',72,177,18,C.muted,700);
+    }
+    function footer(t,idx) {
+      const y=1837; text('SHOPASSIST AI',72,y,18,C.muted,700); text(`${String(idx+1).padStart(2,'0')} / 05`,1008,y,18,C.muted,700,'Arial','right');
+      rounded(72,1864,936,7,4,'#dfe3da'); rounded(72,1864,936*Math.min(1,t/DURATION),7,4,C.green);
+    }
+    function sceneIntro(p) {
+      brand();
+      text('Support that',72,370,76,C.ink,400,'Georgia');
+      text('works at',72,462,76,C.ink,400,'Georgia');
+      text('store speed.',72,554,76,C.green,400,'Georgia');
+      wrap('A supervisor and tool-using agent team handle the questions ecommerce teams answer every day.',76,627,840,45,29,C.muted);
+      panel(72,824,936,570,C.white);
+      pill('SHOPPER QUESTION',118,893,C.sage,C.green);
+      rounded(118,930,832,148,24,C.pale);
+      wrap('Can you check if the portable SSD is in stock?',151,990,755,43,32,C.ink,500);
+      rounded(206,1116,744,211,24,C.green);
+      text('ShopAssist AI',240,1170,22,'#dbe9dc',700);
+      wrap('I’ll check the live catalog and stock, then give you a clear answer.',240,1231,635,43,31,'#fff',400);
+      const x=740+Math.sin(p*Math.PI*2)*12;
+      rounded(x,1452,268,100,24,C.sage); text('Live store data',x+134,1512,23,C.green,700,'Arial','center');
+      text('Less back-and-forth. More help in one place.',72,1665,27,C.ink,600);
+    }
+    function drawDrive(x,y) {
+      ctx.save(); ctx.translate(x,y); ctx.rotate(-.11);
+      ctx.shadowColor='#26372b40'; ctx.shadowBlur=24; ctx.shadowOffsetY=12;
+      rounded(0,0,300,190,26,'#53645c'); ctx.shadowColor='transparent';
+      rounded(19,19,262,152,18,'#d9ded5');
+      rounded(39,45,222,102,12,'#26332c');
+      text('1 TB',150,108,38,'#eef3e9',700,'Arial','center');
+      ctx.restore();
+    }
+    function sceneCatalog(p) {
+      brand(); pill('PRODUCT SEARCH',72,246,'#f4e7dd',C.rust);
+      text('One question.',72,372,72,C.ink,400,'Georgia'); text('One verified answer.',72,455,56,C.green,400,'Georgia');
+      panel(72,535,936,642,C.white);
+      rounded(106,575,868,72,18,'#f4f4ef',C.line); text('⌕',139,622,42,C.muted,400); text('Search the catalog',199,621,25,'#849087',400);
+      panel(106,681,868,455,'#f8f8f3');
+      pill('STORAGE · IN STOCK',143,741,C.sage,C.green);
+      drawDrive(145,797);
+      text('1TB Portable SSD',490,825,34,C.ink,700);
+      text('$129.99',490,884,33,C.green,700);
+      text('9 in stock',490,934,25,C.muted,500);
+      wrap('Portable USB-C solid-state drive, 1TB.',490,988,425,36,24,C.muted);
+      rounded(490,1049,217,57,12,C.green); text('Add to bag',598,1086,22,'#fff',700,'Arial','center');
+      text('Catalog lookup',115,1256,22,C.muted,700);
+      text('Price + inventory verified before replying.',115,1303,27,C.ink,500);
+      pill('LIVE PRODUCT DATA',72,1452,C.sage,C.green);
+      text('No guessing. The agent checks first.',72,1532,36,C.ink,400,'Georgia');
+      text('Product details · availability · recommendations',72,1602,24,C.muted,400);
+    }
+    function sceneWorkflow(p) {
+      brand();
+      text('The right tool,',72,335,68,C.ink,400,'Georgia'); text('for the right request.',72,416,53,C.green,400,'Georgia');
+      const rise=Math.max(0,Math.min(1,(p-.05)*4));
+      panel(72,506,936,190,C.white); pill('01 · SUPERVISOR',112,563,'#f4e7dd',C.rust);
+      text('Understands the request',112,641,32,C.ink,600);
+      text('↓',540,752,48,C.rust,700,'Arial','center');
+      panel(72,810,936,226,'#edf1e9'); pill('02 · TOOL-ENABLED AGENT',112,867,C.sage,C.green);
+      text('Selects the right lookup',112,946,32,C.ink,600);
+      text('Catalog  ·  Orders  ·  Shipping  ·  Policies  ·  Payments',112,995,21,C.muted,500);
+      text('↓',540,1083,48,C.rust,700,'Arial','center');
+      panel(72,1142,936,237,C.green); pill('03 · VERIFIED RESPONSE',112,1201,'#ffffff24','#fff');
+      wrap('Reads the tool result and answers in plain language.',112,1283,820,43,34,'#fff',500);
+      text('Tools do the lookup. The customer gets the answer.',72,1510,29,C.ink,600);
+      wrap('Account-specific information remains protected by sign-in.',72,1567,820,38,24,C.muted);
+      ctx.globalAlpha=rise; rounded(935,108,42,42,21,C.rust); text('✓',956,138,24,'#fff',700,'Arial','center'); ctx.globalAlpha=1;
+    }
+    function sceneCapabilities(p) {
+      brand();
+      text('From “where is it?”',72,340,62,C.ink,400,'Georgia'); text('to “can I return it?”',72,415,52,C.green,400,'Georgia');
+      const cards=[
+        ['01','Products','Availability, details, recommendations'],
+        ['02','Orders & delivery','Order status and shipment tracking'],
+        ['03','Returns','Policy, eligibility, request status'],
+        ['04','Payments','Read-only payment status checks'],
+      ];
+      cards.forEach((c,i)=>{
+        const y=532+i*225, offset=(1-Math.min(1,Math.max(0,(p*5)-i*.23)))*55;
+        panel(72+offset,y,936,184,C.white);
+        rounded(108+offset,y+39,74,74,22,i===2?'#f4e7dd':C.sage);
+        text(c[0],145+offset,y+87,22,i===2?C.rust:C.green,700,'Arial','center');
+        text(c[1],215+offset,y+72,29,C.ink,700);
+        text(c[2],215+offset,y+121,21,C.muted,400);
+        text('→',936+offset,y+96,28,C.green,500,'Arial','center');
+      });
+      text('One conversation. Fewer manual lookups.',72,1510,30,C.ink,600);
+      wrap('Give your team more time for the cases that need a person.',72,1564,860,39,24,C.muted);
+    }
+    function sceneTrust(p) {
+      brand(); pill('BUILT FOR CUSTOMER TRUST',72,257,C.sage,C.green);
+      text('Helpful.',72,419,76,C.ink,400,'Georgia'); text('Grounded.',72,509,76,C.green,400,'Georgia'); text('Under control.',72,599,62,C.ink,400,'Georgia');
+      panel(72,722,936,522,C.white);
+      rounded(110,766,112,112,34,C.sage); text('✓',166,842,56,C.green,700,'Arial','center');
+      text('Sensitive steps stay safe',254,808,31,C.ink,700);
+      wrap('Customers confirm sensitive requests. Returns wait for human approval.',254,861,680,42,25,C.muted);
+      rounded(110,944,860,1,1,C.line);
+      text('Account data',110,1014,24,C.ink,700); text('Protected behind sign-in',110,1059,23,C.muted,400);
+      text('Payment actions',110,1121,24,C.ink,700); text('Status lookup only in this demo',110,1166,23,C.muted,400);
+      panel(72,1347,936,355,C.green);
+      text('ShopAssist AI',118,1434,28,'#dbe9dc',700);
+      text('Spend less time',118,1520,52,'#fff',400,'Georgia');
+      text('chasing answers.',118,1584,52,'#fff',400,'Georgia');
+      text('Smarter support for ecommerce.',118,1641,24,'#e3eee5',500);
+      text('Supervisor → tools → clear answers',118,1742,21,C.muted,700);
+    }
+    const scenes=[sceneIntro,sceneCatalog,sceneWorkflow,sceneCapabilities,sceneTrust];
+    function frame(time) {
+      const t=Math.max(0,Math.min(DURATION,Number(time)||0))/1000;
+      const idx=Math.max(0,Math.min(scenes.length-1,Math.floor(t/4))), local=(t%4)/4;
+      background(t); ctx.save();
+      if (local<.12 && idx>0) { ctx.globalAlpha=local/.12; ctx.translate(0,(1-local/.12)*28); }
+      else if (local>.87 && idx<scenes.length-1) { ctx.globalAlpha=(1-local)/.13; ctx.translate(0,-(local-.87)/.13*22); }
+      scenes[idx](local); ctx.restore(); footer(t,idx);
+    }
+    frame(0);
+    hint.textContent=preferredMime ? `Vertical 9:16 · ${preferredMime.startsWith('video/mp4')?'MP4':'WebM'} · Silent draft · Captions included` : 'This browser cannot render a video file.';
+    startButton.addEventListener('click',()=>{
+      startButton.disabled=true; downloadLink.hidden=true; hint.textContent='Rendering the reel… keep this tab open.';
+      const mime=preferredMime;
+      if (!mime) { hint.textContent='This browser cannot render WebM video.'; startButton.disabled=false; return; }
+      const stream=canvas.captureStream(30), track=stream.getVideoTracks()[0];
+      const chunks=[], recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6500000});
+      const began=performance.now(); let raf;
+      function tick() {
+        const elapsed=performance.now()-began;
+        try { frame(elapsed); track.requestFrame?.(); }
+        catch (error) { hint.textContent=`Render stopped: ${error.message}`; if(recorder.state==='recording')recorder.stop(); return; }
+        if (elapsed<DURATION*1000) raf=requestAnimationFrame(tick);
+      }
+      recorder.ondataavailable=event=>{if(event.data.size)chunks.push(event.data);};
+      recorder.onerror=event=>{hint.textContent=`Video encoder error: ${event.error?.message||'unknown error'}`;};
+      recorder.onstop=()=>{
+        cancelAnimationFrame(raf);
+        const blob=new Blob(chunks,{type:mime}), url=URL.createObjectURL(blob);
+        if (!blob.size) { hint.textContent='The browser returned an empty video. Try another browser.'; startButton.disabled=false; return; }
+        const extension=mime.startsWith('video/mp4')?'mp4':'webm';
+        downloadLink.href=url; downloadLink.download=`shopassist-ai-promo-reel.${extension}`; downloadLink.hidden=false;
+        downloadLink.click(); startButton.disabled=false; hint.textContent=`Reel ready · ${extension.toUpperCase()} · ${(blob.size/1024/1024).toFixed(1)} MB · 1080×1920 · silent draft`;
+      };
+      recorder.start(1000); frame(0); track.requestFrame?.(); raf=requestAnimationFrame(tick);
+      setTimeout(()=>{if(recorder.state==='recording')recorder.stop();},DURATION*1000+350);
+    });
+  </script>
+</body>
+</html>

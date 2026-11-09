@@ -35,7 +35,10 @@ type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   pendingCancellation?: { cancellation_id: string; order_id: string };
+  turn_id?: string;
+  feedback?: string;
 };
+type SupportTicket = { ticket_id: string; order_id: string | null; status: string; category: string; priority: string; triage_summary: string; created_at: string };
 
 type ApiError = { detail?: string };
 type Section = "shop" | "orders" | "account";
@@ -697,13 +700,14 @@ function OrdersSection({
   onClearError: () => void;
 }) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     onClearError();
-    apiRequest<Order[]>("orders/mine")
-      .then((result) => { if (active) setOrders(result); })
+    Promise.all([apiRequest<Order[]>("orders/mine"), apiRequest<SupportTicket[]>("support/tickets/mine")])
+      .then(([result, ticketRows]) => { if (active) { setOrders(result); setSupportTickets(ticketRows); } })
       .catch((reason: unknown) => {
         if (active) onError(reason instanceof Error ? reason.message : "Could not load your orders.");
       })
@@ -743,6 +747,7 @@ function OrdersSection({
           ))}
         </div>
       )}
+      {supportTickets.length > 0 && <div className="customer-ticket-list"><div className="section-heading"><div><span className="eyebrow">SUPPORT</span><h2>Your support requests</h2></div></div>{supportTickets.map((ticket) => <article className="order-card" key={ticket.ticket_id}><div className="order-heading"><div><span className="eyebrow">REQUEST</span><p>{ticket.ticket_id}</p></div><div><span className="eyebrow">TOPIC</span><p>{ticket.category} · {ticket.priority}</p></div><span className={`order-status status-${ticket.status}`}>{ticket.status.replaceAll("_", " ")}</span></div><p>{ticket.triage_summary}</p><small>Submitted {new Date(ticket.created_at).toLocaleDateString()}</small></article>)}</div>}
     </section>
   );
 }
@@ -868,6 +873,7 @@ function SupportSection({
         response: string;
         pending_cancellation_id?: string;
         pending_cancellation_order_id?: string;
+      turn_id?: string;
       }>(authenticated ? "chat" : "chat/guest", {
         method: "POST",
         body: JSON.stringify(authenticated
@@ -881,12 +887,20 @@ function SupportSection({
         role: "assistant",
         content: result.response,
         pendingCancellation,
+        turn_id: result.turn_id,
       }]);
     } catch (reason) {
       onError(reason instanceof Error ? reason.message : "Could not send your message.");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function submitFeedback(turnId: string, feedback: "helpful" | "not_helpful" | "unresolved") {
+    try {
+      await apiRequest("chat/feedback", { method: "POST", body: JSON.stringify({ turn_id: turnId, feedback }) });
+      setMessages((current) => current.map((message) => message.turn_id === turnId ? { ...message, feedback } : message));
+    } catch (reason) { onError(reason instanceof Error ? reason.message : "Could not save feedback."); }
   }
 
   return (
@@ -921,6 +935,7 @@ function SupportSection({
                   {message.role === "assistant" && <span className="chat-avatar">S</span>}
                   <div className="message-bubble">
                     {renderMessageContent(message.content)}
+                    {authenticated && message.role === "assistant" && message.turn_id && <div className="chat-feedback" aria-label="Rate this answer"><span>{message.feedback ? "Thanks for the feedback" : "Was this helpful?"}</span>{(["helpful", "not_helpful", "unresolved"] as const).map((feedback) => <button type="button" key={feedback} disabled={Boolean(message.feedback)} aria-pressed={message.feedback === feedback} onClick={() => void submitFeedback(message.turn_id!, feedback)}>{feedback === "helpful" ? "Yes" : feedback === "not_helpful" ? "No" : "Still need help"}</button>)}</div>}
                     {pending && !confirmedCancellationIds.has(pending.cancellation_id) && (
                       <div className="cancellation-confirmation">
                         <strong>Confirm this cancellation?</strong>

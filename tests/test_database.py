@@ -1,4 +1,23 @@
 from src.services.database import _PostgresConnection, _Record
+import tempfile
+from pathlib import Path
+import pytest
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _setup_database():
+    """Database service tests always use a disposable seeded SQLite database."""
+    from src.config import settings
+    import src.services.database as database
+
+    previous_url, previous_redis, previous_path = settings.database_url, settings.redis_url, database.DB_PATH
+    with tempfile.TemporaryDirectory(prefix="shopassist-database-tests-") as temp_dir:
+        settings.database_url = ""
+        settings.redis_url = ""
+        database.DB_PATH = Path(temp_dir) / "database-tests.sqlite3"
+        database.init_db()
+        yield
+    settings.database_url, settings.redis_url, database.DB_PATH = previous_url, previous_redis, previous_path
 
 
 def test_postgres_query_placeholder_conversion():
@@ -48,6 +67,82 @@ def test_postgres_connection_errors_do_not_expose_connection_credentials(monkeyp
 
     assert secret not in str(error.value)
     assert error.value.__suppress_context__
+
+
+def test_return_window_uses_delivery_time_not_order_creation_time(monkeypatch):
+    from datetime import datetime, timedelta
+
+    from src.services import order_service
+    from src.services.order_service import Order
+    from src.services.shipping_service import Shipment, TrackingEvent
+
+    order = Order(
+        order_id="ORD-OLD-RECENTLY-DELIVERED",
+        customer_name="Demo Customer",
+        email="demo@example.com",
+        items=[],
+        status="delivered",
+        total=10,
+        created_at=(datetime.now() - timedelta(days=30)).isoformat(),
+        shipping_address="",
+        tracking_number="FDX-TEST",
+    )
+    shipment = Shipment(
+        tracking_number="FDX-TEST",
+        carrier="FedEx",
+        status="delivered",
+        estimated_delivery="",
+        events=[TrackingEvent(
+            timestamp=(datetime.now() - timedelta(days=2)).isoformat(),
+            location="Demo",
+            description="Delivered",
+        )],
+    )
+    monkeypatch.setattr(order_service.OrderService, "get_order", lambda _self, _order_id: order)
+    monkeypatch.setattr(order_service.ShippingService, "track", lambda _self, _tracking_number: shipment)
+
+    eligible, message = order_service.OrderService().can_return(order.order_id)
+
+    assert eligible
+    assert "eligible" in message.lower()
+
+
+def test_return_window_rejects_delivery_older_than_fourteen_days(monkeypatch):
+    from datetime import datetime, timedelta
+
+    from src.services import order_service
+    from src.services.order_service import Order
+    from src.services.shipping_service import Shipment, TrackingEvent
+
+    order = Order(
+        order_id="ORD-RECENT-OLD-DELIVERY",
+        customer_name="Demo Customer",
+        email="demo@example.com",
+        items=[],
+        status="delivered",
+        total=10,
+        created_at=(datetime.now() - timedelta(days=2)).isoformat(),
+        shipping_address="",
+        tracking_number="UPS-TEST",
+    )
+    shipment = Shipment(
+        tracking_number="UPS-TEST",
+        carrier="UPS",
+        status="delivered",
+        estimated_delivery="",
+        events=[TrackingEvent(
+            timestamp=(datetime.now() - timedelta(days=16)).isoformat(),
+            location="Demo",
+            description="Package delivered",
+        )],
+    )
+    monkeypatch.setattr(order_service.OrderService, "get_order", lambda _self, _order_id: order)
+    monkeypatch.setattr(order_service.ShippingService, "track", lambda _self, _tracking_number: shipment)
+
+    eligible, message = order_service.OrderService().can_return(order.order_id)
+
+    assert not eligible
+    assert "14-day" in message
 
 
 def test_knowledge_search_returns_citations_for_policy():

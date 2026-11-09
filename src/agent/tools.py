@@ -249,8 +249,9 @@ def create_support_ticket(customer_email: str, description: str, order_id: str =
 @tool
 def search_products(query: str, category: str = "", in_stock: bool = False) -> str:
     """Search the product catalog by name or category and return price and stock.
-    Use for product discovery, availability, and recommendations. Set in_stock when
-    the customer specifically asks for available products."""
+    Use for product discovery, named-product availability, and recommendations. For a
+    named product, omit in_stock so an out-of-stock item can still be found and reported.
+    Set in_stock=True only when listing or searching for products available to buy."""
     products = product_service.search(query, category, in_stock)
     if not products:
         return "No matching products were found in the catalog."

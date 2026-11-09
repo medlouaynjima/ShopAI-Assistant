@@ -28,6 +28,8 @@ coverage/
 # Database
 *.db
 *.db-*
+catalog/demo_access.local.md
+catalog/demo_accounts.local.csv
 images/demo-*.png
 evaluation/live_results/*.inprogress.json
 

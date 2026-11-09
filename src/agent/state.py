@@ -2,6 +2,7 @@
 Agent State — the shared state object that flows through the LangGraph.
 """
 from typing import Annotated, Any
+import operator
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
@@ -26,6 +27,7 @@ class AgentState(TypedDict):
 
     # Tool call results (populated by tool_node)
     tool_results: dict[str, Any]
+    tool_events: Annotated[list[dict[str, Any]], operator.add]
 
     # Final response to the user
     final_response: str

@@ -3,10 +3,11 @@ Order Service — SQLite-backed order management.
 """
 import json
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from src.services.database import get_connection
+from src.services.shipping_service import ShippingService
 
 
 @dataclass
@@ -127,7 +128,7 @@ class OrderService:
             conn.close()
 
     def can_return(self, order_id: str) -> tuple[bool, str]:
-        """Check if an order is eligible for return (within 14 days, delivered)."""
+        """Check return eligibility using the verified delivery event, not purchase date."""
         order = self.get_order(order_id)
         if not order:
             return False, f"Order {order_id} not found."
@@ -135,7 +136,24 @@ class OrderService:
             return False, "Cancelled orders cannot be returned."
         if order.status != "delivered":
             return False, f"Order has not been delivered yet (status: {order.status})."
-        created = datetime.fromisoformat(order.created_at)
-        if datetime.now() - created > timedelta(days=14):
+
+        shipment = ShippingService().track(order.tracking_number or "")
+        if not shipment or shipment.status != "delivered":
+            return False, "Delivery could not be verified. Please contact support to check return eligibility."
+        delivered_event = next(
+            (event for event in reversed(shipment.events)
+             if "deliver" in event.description.casefold()),
+            None,
+        )
+        if not delivered_event:
+            return False, "Delivery date could not be verified. Please contact support to check return eligibility."
+
+        try:
+            delivered_at = datetime.fromisoformat(delivered_event.timestamp)
+        except (TypeError, ValueError):
+            return False, "Delivery date could not be verified. Please contact support to check return eligibility."
+        if delivered_at.tzinfo is None:
+            delivered_at = delivered_at.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) - delivered_at.astimezone(timezone.utc) > timedelta(days=14):
             return False, "The 14-day return window has expired."
         return True, "Order is eligible for return."

@@ -194,8 +194,34 @@ CREATE TABLE IF NOT EXISTS support_tickets (
     order_id        TEXT,
     description     TEXT NOT NULL,
     status          TEXT NOT NULL DEFAULT 'open',
-    created_at      TEXT NOT NULL
+    created_at      TEXT NOT NULL,
+    category        TEXT NOT NULL DEFAULT 'other',
+    priority        TEXT NOT NULL DEFAULT 'normal',
+    ai_category     TEXT NOT NULL DEFAULT 'other',
+    ai_priority     TEXT NOT NULL DEFAULT 'normal',
+    triage_summary  TEXT NOT NULL DEFAULT '',
+    suggested_team TEXT NOT NULL DEFAULT 'Customer care',
+    triage_reason   TEXT NOT NULL DEFAULT 'Awaiting triage.',
+    triage_confidence REAL NOT NULL DEFAULT 0,
+    triage_source   TEXT NOT NULL DEFAULT 'untriaged',
+    subcategory     TEXT NOT NULL DEFAULT '',
+    suggested_next_action TEXT NOT NULL DEFAULT '',
+    assigned_team   TEXT NOT NULL DEFAULT '',
+    first_staff_activity_at TEXT,
+    resolved_at     TEXT,
+    reopened_count  INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS support_ticket_notes (
+    note_id       TEXT PRIMARY KEY,
+    ticket_id     TEXT NOT NULL REFERENCES support_tickets(ticket_id) ON DELETE CASCADE,
+    author        TEXT NOT NULL,
+    note          TEXT NOT NULL,
+    created_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ticket_notes_created
+    ON support_ticket_notes(ticket_id, created_at);
 
 CREATE TABLE IF NOT EXISTS customers (
     email                 TEXT PRIMARY KEY,
@@ -207,6 +233,38 @@ CREATE TABLE IF NOT EXISTS customers (
     verification_sent_at  TEXT,
     verification_attempts INTEGER NOT NULL DEFAULT 0,
     created_at            TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS customer_agent_turns (
+    turn_id       TEXT PRIMARY KEY,
+    customer_email TEXT NOT NULL REFERENCES customers(email),
+    session_id    TEXT NOT NULL,
+    intent        TEXT NOT NULL,
+    outcome       TEXT NOT NULL,
+    tool_count    INTEGER NOT NULL DEFAULT 0,
+    tool_failures INTEGER NOT NULL DEFAULT 0,
+    latency_ms    INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_turns_customer_created
+    ON customer_agent_turns(customer_email, created_at);
+
+CREATE TABLE IF NOT EXISTS conversation_feedback (
+    turn_id       TEXT NOT NULL REFERENCES customer_agent_turns(turn_id) ON DELETE CASCADE,
+    customer_email TEXT NOT NULL REFERENCES customers(email),
+    feedback      TEXT NOT NULL CHECK (feedback IN ('helpful', 'not_helpful', 'unresolved')),
+    created_at    TEXT NOT NULL,
+    PRIMARY KEY (turn_id, customer_email)
+);
+
+CREATE TABLE IF NOT EXISTS quality_reviews (
+    review_id TEXT PRIMARY KEY,
+    turn_id TEXT NOT NULL REFERENCES customer_agent_turns(turn_id) ON DELETE CASCADE,
+    reviewer TEXT NOT NULL,
+    label TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
@@ -238,6 +296,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE TABLE IF NOT EXISTS conversation_messages (
     message_id    TEXT PRIMARY KEY,
+    turn_id       TEXT,
     session_id    TEXT NOT NULL,
     customer_email TEXT NOT NULL REFERENCES customers(email),
     role          TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
@@ -296,6 +355,8 @@ def init_db():
                    ON knowledge_chunks USING hnsw (embedding vector_cosine_ops)"""
             )
 
+        _ensure_ticket_triage_columns(conn)
+
         # Only seed if database is empty
         count = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
         if count == 0:
@@ -308,6 +369,46 @@ def init_db():
     from src.services.knowledge_service import sync_knowledge_base
 
     sync_knowledge_base()
+
+
+def _ensure_ticket_triage_columns(conn) -> None:
+    """Add triage fields to existing databases without replacing ticket data."""
+    columns = {
+        "category": "TEXT NOT NULL DEFAULT 'other'",
+        "priority": "TEXT NOT NULL DEFAULT 'normal'",
+        "ai_category": "TEXT NOT NULL DEFAULT 'other'",
+        "ai_priority": "TEXT NOT NULL DEFAULT 'normal'",
+        "triage_summary": "TEXT NOT NULL DEFAULT ''",
+        "suggested_team": "TEXT NOT NULL DEFAULT 'Customer care'",
+        "triage_reason": "TEXT NOT NULL DEFAULT 'Awaiting triage.'",
+        "triage_confidence": "REAL NOT NULL DEFAULT 0",
+        "triage_source": "TEXT NOT NULL DEFAULT 'untriaged'",
+        "subcategory": "TEXT NOT NULL DEFAULT ''",
+        "suggested_next_action": "TEXT NOT NULL DEFAULT ''",
+        "assigned_team": "TEXT NOT NULL DEFAULT ''",
+        "first_staff_activity_at": "TEXT",
+        "resolved_at": "TEXT",
+        "reopened_count": "INTEGER NOT NULL DEFAULT 0",
+    }
+    if isinstance(conn, _PostgresConnection):
+        for name, declaration in columns.items():
+            conn.execute(
+                f"ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS {name} {declaration}"
+            )
+        conn.execute(
+            "ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS turn_id TEXT"
+        )
+        return
+
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(support_tickets)").fetchall()}
+    for name, declaration in columns.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE support_tickets ADD COLUMN {name} {declaration}")
+    message_columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(conversation_messages)").fetchall()
+    }
+    if "turn_id" not in message_columns:
+        conn.execute("ALTER TABLE conversation_messages ADD COLUMN turn_id TEXT")
 
 
 # ---------------------------------------------------------------------------
@@ -465,10 +566,10 @@ def _seed_data(conn):
          ]),
 
         ("FDX-55667788", "FedEx", "delivered",
-         (now - timedelta(days=14)).strftime("%Y-%m-%d"),
+         (now - timedelta(days=16)).strftime("%Y-%m-%d"),
          [
              {"timestamp": (now - timedelta(days=16)).isoformat(), "location": "Newark, NJ", "description": "Package picked up"},
-             {"timestamp": (now - timedelta(days=14)).isoformat(), "location": "New York, NY", "description": "Delivered"},
+             {"timestamp": (now - timedelta(days=16)).isoformat(), "location": "New York, NY", "description": "Delivered"},
          ]),
 
         ("DHL-99001122", "DHL", "delivered",

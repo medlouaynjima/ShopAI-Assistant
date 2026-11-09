@@ -1,0 +1,225 @@
+{
+  "status": "complete",
+  "evaluation_type": "deterministic_backend_workflow_checks",
+  "completed_at_utc": "2026-11-09T11:18:42.833268+00:00",
+  "database": "temporary seeded SQLite (isolated)",
+  "case_count": 20,
+  "passed": 20,
+  "metrics": {
+    "approval_safety": {
+      "passed": 3,
+      "total": 3,
+      "accuracy": 1.0
+    },
+    "customer_data_isolation": {
+      "passed": 5,
+      "total": 5,
+      "accuracy": 1.0
+    },
+    "escalation": {
+      "passed": 1,
+      "total": 1,
+      "accuracy": 1.0
+    },
+    "failure_handling": {
+      "passed": 3,
+      "total": 3,
+      "accuracy": 1.0
+    },
+    "policy_compliance": {
+      "passed": 6,
+      "total": 6,
+      "accuracy": 1.0
+    },
+    "tool_execution": {
+      "passed": 13,
+      "total": 13,
+      "accuracy": 1.0
+    },
+    "unauthorized_action_rejection": {
+      "passed": 2,
+      "total": 2,
+      "accuracy": 1.0
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "product_search",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution"
+      ],
+      "evidence": "Matched SKU-201, price, and inventory from seeded catalog."
+    },
+    {
+      "case_id": "inventory_lookup",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution"
+      ],
+      "evidence": "Mechanical Keyboard (SKU-201): 7 in stock."
+    },
+    {
+      "case_id": "named_product_search_includes_out_of_stock",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution"
+      ],
+      "evidence": "Named item lookup returns the product and its out-of-stock status."
+    },
+    {
+      "case_id": "owned_order_lookup",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution"
+      ],
+      "evidence": "The matching customer's order was returned."
+    },
+    {
+      "case_id": "cross_customer_order_denied",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution",
+        "customer_data_isolation"
+      ],
+      "evidence": "Foreign order returned an account-scoped not-found result without PII."
+    },
+    {
+      "case_id": "owned_shipment_lookup",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution"
+      ],
+      "evidence": "Owned tracking number returned current status."
+    },
+    {
+      "case_id": "cross_customer_shipment_denied",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution",
+        "customer_data_isolation"
+      ],
+      "evidence": "Foreign tracking number did not disclose shipment details."
+    },
+    {
+      "case_id": "policy_citation",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution",
+        "policy_compliance"
+      ],
+      "evidence": "Return window and source attribution are present."
+    },
+    {
+      "case_id": "payment_read_only",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution",
+        "policy_compliance"
+      ],
+      "evidence": "Payment record is visible and the order remains unchanged."
+    },
+    {
+      "case_id": "guest_order_requires_auth",
+      "status": "passed",
+      "dimensions": [
+        "customer_data_isolation"
+      ],
+      "evidence": "Guest access to private order data requires sign-in."
+    },
+    {
+      "case_id": "cancellation_confirmation_gate",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution",
+        "policy_compliance",
+        "approval_safety"
+      ],
+      "evidence": "Request stayed pending until the owner confirmed; repeat request reused the same id."
+    },
+    {
+      "case_id": "unauthorized_cancellation_denied",
+      "status": "passed",
+      "dimensions": [
+        "customer_data_isolation",
+        "unauthorized_action_rejection"
+      ],
+      "evidence": "Wrong customer rejected before any cancellation request was created."
+    },
+    {
+      "case_id": "eligible_return_stays_unapproved",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution",
+        "policy_compliance",
+        "approval_safety"
+      ],
+      "evidence": "Eligible return required customer confirmation and remains subject to human approval; no refund issued."
+    },
+    {
+      "case_id": "expired_return_rejected",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution",
+        "policy_compliance"
+      ],
+      "evidence": "Delivered order outside the 14-day window was rejected."
+    },
+    {
+      "case_id": "return_window_uses_delivery_date",
+      "status": "passed",
+      "dimensions": [
+        "policy_compliance"
+      ],
+      "evidence": "The return window was evaluated from the delivery event."
+    },
+    {
+      "case_id": "support_ticket_created",
+      "status": "passed",
+      "dimensions": [
+        "tool_execution",
+        "escalation"
+      ],
+      "evidence": "A linked complaint ticket was created with open status and human follow-up."
+    },
+    {
+      "case_id": "foreign_order_ticket_rejected",
+      "status": "passed",
+      "dimensions": [
+        "customer_data_isolation",
+        "unauthorized_action_rejection"
+      ],
+      "evidence": "Ticket creation rejected an order owned by another customer."
+    },
+    {
+      "case_id": "tool_failure_redacts_internal_details",
+      "status": "passed",
+      "dimensions": [
+        "failure_handling"
+      ],
+      "evidence": "Tool exception was replaced with a safe, generic message."
+    },
+    {
+      "case_id": "llm_failure_uses_grounded_product_fallback",
+      "status": "passed",
+      "dimensions": [
+        "failure_handling"
+      ],
+      "evidence": "Model timeout fell back to a real catalog lookup without exposing the exception."
+    },
+    {
+      "case_id": "llm_failure_keeps_cancellation_pending",
+      "status": "passed",
+      "dimensions": [
+        "failure_handling",
+        "approval_safety"
+      ],
+      "evidence": "Offline cancellation request remained pending; order state was unchanged until confirmation."
+    }
+  ],
+  "limitations": [
+    "These checks exercise tools and business services without an LLM.",
+    "They do not measure model tool choice, argument generation, or final answer quality.",
+    "The seeded data is synthetic and does not represent a production workload."
+  ]
+}

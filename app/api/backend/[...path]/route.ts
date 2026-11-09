@@ -11,12 +11,17 @@ const allowedRoutes = new Set([
   "products",
   "products/categories",
   "orders/mine",
+  "support/tickets/mine",
   "orders/checkout",
   "chat",
   "chat/guest",
   "chat/history",
+  "chat/feedback",
   "admin/dashboard",
+  "admin/analytics",
   "admin/tickets",
+  "admin/quality-queue",
+  "admin/quality-reviews",
   "admin/returns/pending",
   "admin/audit",
 ]);
@@ -25,6 +30,8 @@ type RouteContext = { params: Promise<{ path: string[] }> };
 
 function isAllowedAdminAction(endpoint: string) {
   return /^admin\/tickets\/[A-Za-z0-9_-]+$/.test(endpoint)
+    || /^admin\/tickets\/[A-Za-z0-9_-]+\/triage$/.test(endpoint)
+    || /^admin\/tickets\/[A-Za-z0-9_-]+\/(team|notes)$/.test(endpoint)
     || /^admin\/returns\/[A-Za-z0-9_-]+\/approve$/.test(endpoint);
 }
 

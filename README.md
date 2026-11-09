@@ -22,6 +22,9 @@
 - [Testing](#-testing)
 - [Observability](#-observability)
 - [Evaluation and project status](#evaluation-and-project-status)
+- [Support operations report](evaluation/SUPPORT_OPERATIONS_REPORT.md)
+- [MCP integration guide](docs/MCP_INTEGRATION.md)
+- [Support operations workflow](docs/SUPPORT_OPERATIONS.md)
 - [Portfolio materials](#portfolio-materials)
 - [Tech Stack](#-tech-stack)
 - [License](#-license)
@@ -108,6 +111,9 @@ User receives structured answer
 | 💬 **Conversation history** | Persistent, customer/session-scoped chat with a clear-history action |
 | 📚 **Cited knowledge retrieval** | Returns/shipping/payment/support policies and live product facts with source paths; no-match responses are explicit |
 | 🧑‍💼 **Admin operations** | HttpOnly admin session, ticket queue/status updates, return approvals, metrics, and audit trail |
+| 🧭 **AI-assisted ticket triage** | Redacted customer message → suggested category, priority, summary, and team; model failures never block escalation |
+| 🧑‍⚖️ **Human-controlled queue** | Staff can override ticket category and priority; decisions are audited and original AI suggestions remain visible |
+| 📈 **Support workload view** | Open backlog by category, high-priority count, tickets awaiting triage, and pending return approvals |
 | ⚡ **Redis cache** | 60-second catalog query caching; database reads continue when Redis is unavailable |
 | 🧪 **110-scenario live evaluation** | Resumable Groq supervisor intent/routing evaluation with strict JSON output |
 | 🔌 **ShopAssist MCP server** | Local stdio tools for product search and session-scoped order lookup |
@@ -140,6 +146,8 @@ docker compose up -d postgres
 ```
 
 The local checkout uses PostgreSQL port `55432` because lower ports were unavailable on this machine, and Redis port `6379`. Its existing SQLite records have been copied and verified in PostgreSQL; the SQLite file remains unchanged. PostgreSQL and Redis use named Docker volumes. To migrate another SQLite database, set `DATABASE_URL`, stop the app, then run `python -m src.services.migrate_sqlite_to_postgres`.
+
+For the local portfolio dataset, run `python -m scripts.seed_demo_business`. It creates fictional, verified customer accounts with hashed passwords, product stock, orders, shipment events, payment statuses, and sample return/cancellation/support cases in PostgreSQL. Local login credentials are written to a git-ignored file at `catalog/demo_accounts.local.csv`. These records and stock levels are demonstration data, not real merchant/customer records. See [support operations](docs/SUPPORT_OPERATIONS.md) for the triage workflow and limitations.
 
 Knowledge ingestion synchronizes policy and active product records, cleans markdown, and chunks content at section/paragraph boundaries into `knowledge_chunks`. With PostgreSQL/pgvector and `GEMINI_API_KEY` configured, run `python -m src.services.knowledge_service` to generate 768-dimensional Gemini embeddings in batches. Retrieval combines keyword and cosine rankings with reciprocal-rank fusion, then reranks candidates and includes source paths. If embeddings are missing or vector search fails, it falls back to keyword retrieval. No customer conversations or private order data are indexed.
 
@@ -556,16 +564,19 @@ Tracing is optional; missing credentials do not prevent the application from sta
 
 ## Evaluation and project status
 
-- [Phase 1 routing evaluation](evaluation/PHASE1_REPORT.md): 110/110 routes correct (100%), compared with the corrected 101/110 baseline.
+- [Phase 1 customer-support evaluation](evaluation/PHASE1_REPORT.md): routing regression (110/110), deterministic workflow/failure checks (20/20), and expanded live agent evaluation (16 scenarios).
 - [RAG evaluation](evaluation/RAG_REPORT.md): Recall@3 100%, MRR 0.95 on ten known-answer questions. This is a small project set; the hybrid pgvector run matched keyword retrieval.
 - [Phase 4 security report](evaluation/PHASE4_SECURITY_REPORT.md): security controls, focused checks, and limitations.
 - [Phase 5 deployment report](evaluation/PHASE5_DEPLOYMENT_REPORT.md): Compose/CI status, readiness, metrics, and external-service verification limitations.
-- Full live agent-answer quality remains inconclusive because the provider rate-limited the evaluation. This repository does not claim production readiness.
+- [Support operations report](evaluation/SUPPORT_OPERATIONS_REPORT.md): ticket triage/ownership, customer feedback, tool reliability, and measured support metrics.
+- [MCP integration](docs/MCP_INTEGRATION.md): tool discovery, local server setup, and account-scoped order lookup.
+- The 16-scenario Groq agent-quality evaluation completed: tool selection 16/16, answer and policy checks 16/16, and tool argument/execution checks 14/14 and 15/15 applicable cases. These small, phrase-checked synthetic results are an initial baseline, not a production reliability claim.
 
 ## Portfolio materials
 
 - [Architecture, agent workflow, and RAG diagrams](docs/PORTFOLIO_OVERVIEW.md)
 - [Four-minute demo script](docs/DEMO_SCRIPT.md)
+- [Promo reel (MP4)](videos/shopassist-ai-promo-reel.mp4) · [WebM](videos/shopassist-ai-promo-reel.webm)
 - [CV and LinkedIn copy](docs/CV_PROJECT_DESCRIPTION.md)
 
 Current storefront screenshots are not included yet. Older local chat screenshots contain account details and were intentionally excluded; capture fresh, privacy-reviewed storefront and admin screenshots before adding product visuals.

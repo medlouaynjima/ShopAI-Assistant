@@ -35,6 +35,7 @@ class ChatResponse(BaseModel):
     tool_results: dict = Field(default_factory=dict)
     pending_cancellation_id: str = ""
     pending_cancellation_order_id: str = ""
+    turn_id: str = ""
 
 
 class ConversationMessageResponse(BaseModel):
@@ -43,6 +44,8 @@ class ConversationMessageResponse(BaseModel):
     created_at: str
     pending_cancellation_id: str = ""
     pending_cancellation_order_id: str = ""
+    turn_id: str = ""
+    feedback: str = ""
 
 
 class ConversationHistoryResponse(BaseModel):
@@ -193,16 +196,72 @@ class AdminTicketResponse(BaseModel):
     description: str
     status: str
     created_at: str
+    category: str
+    priority: str
+    ai_category: str
+    ai_priority: str
+    triage_summary: str
+    suggested_team: str
+    triage_reason: str
+    triage_confidence: float
+    triage_source: str
+    subcategory: str
+    suggested_next_action: str
+    assigned_team: str
+    first_staff_activity_at: str | None
+    resolved_at: str | None
+    reopened_count: int
+    notes: list[dict] = Field(default_factory=list)
 
 
 class AdminTicketUpdate(BaseModel):
     status: Literal["open", "in_progress", "resolved"]
 
 
+class AdminTicketTriageUpdate(BaseModel):
+    category: Literal["orders", "shipping", "returns", "payments", "products", "account", "complaint", "other"]
+    priority: Literal["urgent", "high", "normal", "low"]
+
+
+class AdminTicketAssignRequest(BaseModel):
+    assigned_team: Literal[
+        "Order management", "Logistics", "Returns", "Billing",
+        "Product support", "Account security", "Customer care", "Unassigned",
+    ]
+
+
+class AdminTicketNoteRequest(BaseModel):
+    note: str = Field(..., min_length=1, max_length=4000)
+
+
+class CustomerSupportTicketResponse(BaseModel):
+    ticket_id: str
+    order_id: str | None
+    status: str
+    category: str
+    priority: str
+    triage_summary: str
+    created_at: str
+
+
+class ChatFeedbackRequest(BaseModel):
+    turn_id: str = Field(..., min_length=1, max_length=64)
+    feedback: Literal["helpful", "not_helpful", "unresolved"]
+
+
+class QualityReviewRequest(BaseModel):
+    turn_id: str = Field(..., min_length=1, max_length=64)
+    label: Literal["incorrect_answer", "policy_issue", "tool_failure", "privacy", "unnecessary_escalation", "missed_escalation", "other"]
+    note: str = Field(default="", max_length=2000)
+
+
 class AdminDashboardResponse(BaseModel):
     total_orders: int
     total_customers: int
     open_tickets: int
+    high_priority_tickets: int
+    untriaged_tickets: int
+    ticket_category_counts: dict[str, int]
     pending_return_approvals: int
     recent_tickets: list[AdminTicketResponse]
 

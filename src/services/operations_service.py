@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 
 from src.services.database import get_connection
+from src.services.ticket_triage import triage_ticket
 
 
 def _new_id(prefix: str) -> str:
@@ -13,6 +14,20 @@ def _new_id(prefix: str) -> str:
 
 class OperationsService:
     """Coordinates safe, auditable customer-service operations."""
+
+    def list_customer_tickets(self, customer_email: str, limit: int = 25) -> list[dict]:
+        email = customer_email.strip().lower()
+        conn = get_connection()
+        try:
+            rows = conn.execute(
+                """SELECT ticket_id, order_id, status, category, priority, triage_summary, created_at
+                   FROM support_tickets WHERE customer_email = ?
+                   ORDER BY created_at DESC LIMIT ?""",
+                (email, max(1, min(limit, 50))),
+            ).fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            conn.close()
 
     def get_pending_cancellation(self, order_id: str, customer_email: str) -> dict | None:
         conn = get_connection()
@@ -233,14 +248,23 @@ class OperationsService:
             "description": message,
             "status": "open",
             "created_at": datetime.now().isoformat(),
+            **triage_ticket(message),
         }
         conn = get_connection()
         try:
             conn.execute(
                 """INSERT INTO support_tickets
-                   (ticket_id, customer_email, order_id, description, status, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                tuple(ticket.values()),
+                   (ticket_id, customer_email, order_id, description, status, created_at,
+                    category, priority, ai_category, ai_priority, triage_summary,
+                    suggested_team, triage_reason, triage_confidence, triage_source,
+                    subcategory, suggested_next_action)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                tuple(ticket[key] for key in (
+                    "ticket_id", "customer_email", "order_id", "description", "status", "created_at",
+                    "category", "priority", "ai_category", "ai_priority", "triage_summary",
+                    "suggested_team", "triage_reason", "triage_confidence", "triage_source",
+                    "subcategory", "suggested_next_action",
+                )),
             )
             conn.commit()
             return ticket

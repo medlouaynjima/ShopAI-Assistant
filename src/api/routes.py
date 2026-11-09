@@ -3,6 +3,7 @@ FastAPI Routes — the Agent Gateway.
 """
 import hmac
 import re
+import time
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -17,6 +18,9 @@ from src.api.schemas import (
     AdminAuditResponse,
     AdminTicketResponse,
     AdminTicketUpdate,
+    AdminTicketTriageUpdate,
+    AdminTicketAssignRequest,
+    AdminTicketNoteRequest,
     AuthMessageResponse,
     AuthTokenResponse,
     ChatRequest,
@@ -39,7 +43,10 @@ from src.api.schemas import (
     ReturnWorkflowResponse,
     SupportTicketRequest,
     SupportTicketResponse,
+    CustomerSupportTicketResponse,
     VerifyEmailRequest,
+    ChatFeedbackRequest,
+    QualityReviewRequest,
 )
 from src.config import settings
 from src.observability.langfuse_setup import trace_workflow
@@ -128,15 +135,51 @@ async def get_admin_llm_metrics(
         return metrics_snapshot()
 
 
+@router.get("/admin/analytics")
+async def get_admin_analytics(
+        date_from: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+        date_to: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+        x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
+):
+        _require_admin_key(x_admin_key)
+        try:
+            return admin_service.analytics(date_from, date_to)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="Dates must be valid YYYY-MM-DD values.") from exc
+
+
+@router.get("/admin/quality-queue")
+async def get_admin_quality_queue(
+        limit: int = Query(default=100, ge=1, le=200),
+        x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
+):
+        _require_admin_key(x_admin_key)
+        return admin_service.quality_queue(limit)
+
+
+@router.post("/admin/quality-reviews")
+async def post_admin_quality_review(
+        req: QualityReviewRequest,
+        x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
+):
+        _require_admin_key(x_admin_key)
+        try:
+            return admin_service.add_quality_review(req.turn_id, "admin", req.label, req.note)
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.get("/admin/tickets", response_model=list[AdminTicketResponse])
 async def list_admin_tickets(
         status_filter: str | None = Query(default=None, alias="status", max_length=20),
+        category_filter: str | None = Query(default=None, alias="category", max_length=24),
+        priority_filter: str | None = Query(default=None, alias="priority", max_length=12),
         limit: int = Query(default=100, ge=1, le=200),
         x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
 ):
         _require_admin_key(x_admin_key)
         try:
-            return admin_service.list_tickets(status_filter, limit)
+            return admin_service.list_tickets(status_filter, category_filter, priority_filter, limit)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -168,6 +211,54 @@ async def update_admin_ticket(
         _require_admin_key(x_admin_key)
         result = _run_operation(admin_service.update_ticket, ticket_id, req.status)
         return AdminTicketResponse(**result)
+
+
+@router.patch("/admin/tickets/{ticket_id}/triage", response_model=AdminTicketResponse)
+async def update_admin_ticket_triage(
+        ticket_id: str,
+        req: AdminTicketTriageUpdate,
+        x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
+):
+        _require_admin_key(x_admin_key)
+        result = _run_operation(
+            admin_service.update_ticket_triage, ticket_id, req.category, req.priority
+        )
+        return AdminTicketResponse(**result)
+
+
+@router.post("/admin/tickets/{ticket_id}/triage", response_model=AdminTicketResponse)
+async def rerun_admin_ticket_triage(
+        ticket_id: str,
+        x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
+):
+        _require_admin_key(x_admin_key)
+        try:
+            result = await run_in_threadpool(admin_service.rerun_ticket_triage, ticket_id)
+            return AdminTicketResponse(**result)
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.patch("/admin/tickets/{ticket_id}/team", response_model=AdminTicketResponse)
+async def assign_admin_ticket_team(
+        ticket_id: str,
+        req: AdminTicketAssignRequest,
+        x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
+):
+        _require_admin_key(x_admin_key)
+        result = _run_operation(admin_service.assign_ticket, ticket_id, req.assigned_team)
+        result["notes"] = []
+        return AdminTicketResponse(**result)
+
+
+@router.post("/admin/tickets/{ticket_id}/notes")
+async def add_admin_ticket_note(
+        ticket_id: str,
+        req: AdminTicketNoteRequest,
+        x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
+):
+        _require_admin_key(x_admin_key)
+        return _run_operation(admin_service.add_ticket_note, ticket_id, req.note)
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -381,6 +472,7 @@ async def chat(
     )
     messages.append(HumanMessage(content=req.message))
 
+    turn_started = time.perf_counter()
     initial_state: AgentState = {
         "messages": messages,
         "intent": "",
@@ -390,6 +482,7 @@ async def chat(
         "return_reason": "",
         "customer_email": customer["email"],
         "tool_results": {},
+        "tool_events": [],
         "final_response": "",
         "retry_count": 0,
         "error_message": "",
@@ -508,8 +601,25 @@ async def chat(
             f"Request reference: `{cancellation_id}`. To cancel the order, use the "
             "**Confirm cancellation** button below. Nothing changes until you confirm."
         )
+    events = list(result.get("tool_events") or [])
+    if result.get("error_message"):
+        outcome = "model_error"
+    elif any(not event.get("success", False) for event in events):
+        outcome = "tool_error"
+    elif cancellation_id or result.get("intent") in {"order_cancellation", "return_request"}:
+        outcome = "awaiting_customer_action"
+    elif "create_support_ticket" in tool_results:
+        outcome = "escalated"
+    elif events:
+        outcome = "evidence_answered"
+    else:
+        outcome = "unverified_answer"
+    turn_id = conversation_service.record_agent_turn(
+        customer["email"], req.session_id, result.get("intent", "general"), outcome,
+        events, round((time.perf_counter() - turn_started) * 1000),
+    )
     conversation_service.save_exchange(
-        customer["email"], req.session_id, req.message, response_text
+        customer["email"], req.session_id, req.message, response_text, turn_id
     )
     return ChatResponse(
         response=response_text,
@@ -520,6 +630,7 @@ async def chat(
         tool_results=tool_results,
         pending_cancellation_id=cancellation_id,
         pending_cancellation_order_id=cancellation_order_id,
+        turn_id=turn_id,
     )
 
 
@@ -550,6 +661,7 @@ async def guest_chat(req: GuestChatRequest):
         "customer_email": "",
         "guest_access": True,
         "tool_results": {},
+        "tool_events": [],
         "final_response": "",
         "retry_count": 0,
         "error_message": "",
@@ -605,6 +717,18 @@ async def get_chat_history(
         session_id=session_id,
         messages=messages,
     )
+
+
+@router.post("/chat/feedback")
+async def post_chat_feedback(
+        req: ChatFeedbackRequest,
+        customer: dict = Depends(get_current_customer),
+):
+        try:
+            conversation_service.save_feedback(req.turn_id, customer["email"], req.feedback)
+            return {"saved": True, "feedback": req.feedback}
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.delete("/chat/history", response_model=ConversationClearResponse)
@@ -756,3 +880,13 @@ async def create_support_ticket(
         status=ticket["status"],
         message="Your request has been escalated to the support team.",
     )
+
+
+@router.get("/support/tickets/mine", response_model=list[CustomerSupportTicketResponse])
+async def list_my_support_tickets(
+        customer: dict = Depends(get_current_customer),
+):
+        tickets = await run_in_threadpool(
+            operations_service.list_customer_tickets, customer["email"]
+        )
+        return [CustomerSupportTicketResponse(**ticket) for ticket in tickets]

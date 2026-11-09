@@ -206,6 +206,59 @@ def _order_status_fast_path(
         }
 
 
+def _contextual_followup(messages, latest_user: str, customer_email: str) -> dict | None:
+    """Resolve short replies against explicit, immediately preceding conversation context."""
+    history = _conversation_context(messages, limit=12)
+    humans = [message.content for message in history[:-1] if isinstance(message, HumanMessage)]
+    assistants = [message.content for message in history[:-1] if isinstance(message, AIMessage)]
+    if not assistants:
+        return None
+    prior_assistant = str(assistants[-1])
+    prior_request_intent = classify_without_llm(humans[-1]) if humans else None
+
+    # A short ordinal answer is resolvable when the assistant just presented the account order list.
+    ordinal = re.search(r"\b(first|1st|second|2nd|third|3rd|last)\b", latest_user, re.IGNORECASE)
+    if ordinal and re.search(r"\b(order|orders)\b", prior_assistant, re.IGNORECASE):
+        ids = [f"ORD-{value.upper()}" for value in ORDER_ID_PATTERN.findall(prior_assistant)]
+        choice = {"first": 0, "1st": 0, "second": 1, "2nd": 1, "third": 2, "3rd": 2}.get(ordinal.group(1).lower())
+        if ids and re.search(r"which order|order number|check further|like me to check", prior_assistant, re.IGNORECASE):
+            selected = ids[choice] if choice is not None and choice < len(ids) else ids[-1] if ordinal.group(1).lower() == "last" else ""
+            if selected:
+                return _order_status_fast_path(latest_user, customer_email, selected)
+
+    explicit_id = extract_order_id(latest_user)
+    asks_for_order = bool(re.search(r"order number|share (?:the )?order|which order", prior_assistant, re.IGNORECASE))
+    confirmed_order = ""
+    if re.search(r"cancellation confirmed|cancellation.*complete", prior_assistant, re.IGNORECASE):
+        confirmed_order = extract_order_id(prior_assistant)
+    is_return_followup = prior_request_intent == "return_request" and (explicit_id or asks_for_order)
+    is_return_after_action = (
+        classify_without_llm(latest_user) == "return_request"
+        and bool(confirmed_order)
+        and bool(re.search(r"\b(it|that|this)\b", latest_user, re.IGNORECASE))
+    )
+    if not is_return_followup and not is_return_after_action:
+        return None
+
+    reason_text = " ".join([latest_user, *humans[-3:]]).lower()
+    reason_patterns = (
+        ("changed_mind", r"changed my mind|no longer want|don't want it|do not want it"),
+        ("damaged", r"damaged|arrived broken"),
+        ("defective", r"defective|doesn't work|does not work|faulty"),
+        ("wrong_item", r"wrong item|wrong product|different item"),
+        ("not_as_described", r"not as described|misrepresented"),
+        ("too_late", r"too late|arrived late|late delivery"),
+    )
+    reason = next((value for value, pattern in reason_patterns if re.search(pattern, reason_text)), "")
+    return {
+        "intent": "return_request",
+        "order_id": explicit_id or confirmed_order,
+        "tracking_number": "",
+        "return_reason": reason,
+        "offline_mode": False,
+    }
+
+
 def supervisor_node(state: AgentState) -> dict:
     """Classify the latest message using recent conversation, with safe offline fallback."""
     messages = state.get("messages", [])
@@ -225,6 +278,9 @@ def supervisor_node(state: AgentState) -> dict:
 
     fallback_intent = classify_without_llm(last_user_msg)
     explicit_order_id = extract_order_id(last_user_msg)
+    contextual = _contextual_followup(messages, last_user_msg, customer_email)
+    if contextual:
+        return {**base, **contextual}
     # Preserve clear high-impact intents when the model returns a plausible but
     # incorrect neighboring route (for example, "withdraw order" or
     # "transaction status" being treated as generic order progress).

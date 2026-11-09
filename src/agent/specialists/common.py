@@ -1,6 +1,7 @@
 """Shared ReAct execution for customer-facing agents."""
 from collections.abc import Sequence
 import logging
+import time
 
 from langchain_core.messages import SystemMessage, ToolMessage
 
@@ -25,7 +26,7 @@ CUSTOMER_SCOPED_TOOLS = {
 MAX_TOOL_TURNS = 5
 
 
-def _run_tool(tool_call: dict, tools: Sequence, state: AgentState, specialist: str) -> tuple[str, str]:
+def _run_tool(tool_call: dict, tools: Sequence, state: AgentState, specialist: str) -> tuple[str, str, dict]:
     """Run one requested tool while enforcing server-owned customer identity."""
     tool_name = tool_call.get("name", "")
     tool_args = dict(tool_call.get("args") or {})
@@ -37,12 +38,17 @@ def _run_tool(tool_call: dict, tools: Sequence, state: AgentState, specialist: s
 
     tool = next((item for item in tools if item.name == tool_name), None)
     if tool is None:
-        return tool_name or "unknown_tool", f"Tool '{tool_name}' is not available to {specialist}."
+        name = tool_name or "unknown_tool"
+        return name, f"Tool '{tool_name}' is not available to {specialist}.", {"name": name, "success": False, "duration_ms": 0}
     try:
-        return tool_name, str(tool.invoke(tool_args))
+        started = time.perf_counter()
+        result = str(tool.invoke(tool_args))
+        event = {"name": tool_name, "success": not result.startswith("❌") and "could not complete" not in result.lower(), "duration_ms": round((time.perf_counter() - started) * 1000)}
+        return tool_name, result, event
     except Exception:
+        event = {"name": tool_name or "unknown_tool", "success": False, "duration_ms": 0}
         # Keep implementation details out of the model context and customer response.
-        return tool_name, "The tool could not complete this lookup. Try another relevant tool or explain the limitation."
+        return tool_name, "The tool could not complete this lookup. Try another relevant tool or explain the limitation.", event
 
 
 def _answer_from_evidence(conversation: list, instructions: str) -> str:
@@ -69,7 +75,7 @@ def run_specialist(
     retries = state.get("retry_count", 0)
 
     if intent == "general":
-        return {"tool_results": {}, "retry_count": retries, "specialist": specialist}
+        return {"tool_results": {}, "tool_events": [], "retry_count": retries, "specialist": specialist}
 
     if state.get("offline_mode"):
         fallback_result = run_offline_tool(intent, messages, state, tools)
@@ -77,6 +83,7 @@ def run_specialist(
             tool_name, result = fallback_result
             return {
                 "tool_results": {tool_name: result},
+                "tool_events": [{"name": tool_name, "success": not str(result).startswith("❌"), "duration_ms": 0}],
                 "retry_count": retries,
                 "specialist": specialist,
             }
@@ -87,6 +94,7 @@ def run_specialist(
                     "Please tell me what you need help with."
                 )
             },
+            "tool_events": [],
             "retry_count": retries,
             "specialist": specialist,
         }
@@ -105,13 +113,16 @@ Verified context:
 Work through the request privately. Decide which available tool(s) are needed and call
 only those. Read each tool result before deciding whether another lookup is necessary.
 For account, inventory, or policy questions, verify the relevant facts with tools before
-answering.
+answering. If a customer asks whether a named product is in stock, search for that product
+without filtering out-of-stock results, then report its actual inventory. Use in-stock
+filtering only when finding products available to buy.
 Then give the customer a direct, natural answer grounded in those results. Do not dump
 raw tool output, invent missing details, or reveal private reasoning. For actions, explain
 exactly what is pending or completed according to the tool result."""
 
     conversation = list(messages)
     collected_results: dict[str, str] = {}
+    tool_events: list[dict] = []
     try:
         model = llm.get_llm_with_tools(tools)
         for turn_index in range(MAX_TOOL_TURNS):
@@ -125,13 +136,15 @@ exactly what is pending or completed according to the tool result."""
                     collected_results["assistant_message"] = final_text
                 return {
                     "tool_results": collected_results,
+                    "tool_events": tool_events,
                     "retry_count": retries + 1,
                     "specialist": specialist,
                 }
 
             conversation.append(ai_message)
             for call_index, tool_call in enumerate(tool_calls):
-                tool_name, tool_result = _run_tool(tool_call, tools, state, specialist)
+                tool_name, tool_result, tool_event = _run_tool(tool_call, tools, state, specialist)
+                tool_events.append(tool_event)
                 collected_results[tool_name] = tool_result
                 conversation.append(ToolMessage(
                     content=tool_result,
@@ -146,6 +159,7 @@ exactly what is pending or completed according to the tool result."""
             collected_results["assistant_message"] = final_text
         return {
             "tool_results": collected_results,
+            "tool_events": tool_events,
             "retry_count": retries + 1,
             "specialist": specialist,
         }
@@ -164,12 +178,14 @@ exactly what is pending or completed according to the tool result."""
             tool_name, result = fallback_result
             return {
                 "tool_results": {tool_name: result},
+                "tool_events": [{"name": tool_name, "success": not str(result).startswith("❌"), "duration_ms": 0}],
                 "retry_count": retries + 1,
                 "specialist": specialist,
                 "offline_mode": True,
             }
         return {
             "tool_results": {"error": "The language model is unavailable."},
+            "tool_events": tool_events,
             "retry_count": retries + 1,
             "error_message": "The language model is unavailable.",
             "specialist": specialist,

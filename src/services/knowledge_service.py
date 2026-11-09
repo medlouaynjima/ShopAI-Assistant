@@ -357,6 +357,11 @@ def search_knowledge(query: str, limit: int = 4) -> list[dict]:
         # and title relevance after hybrid candidate generation.
         item["score"] += (0.02 * coverage) + (0.01 * title_hits)
     matches.sort(key=lambda item: item["score"], reverse=True)
+    if matches:
+        # Avoid returning weakly related policy chunks just because they share a
+        # broad term (for example, a payments document mentioning a return).
+        relevance_floor = matches[0]["score"] * 0.7
+        matches = [item for item in matches if item["score"] >= relevance_floor]
     matches = matches[:max(limit, 1)]
     return matches
 

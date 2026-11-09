@@ -1,5 +1,5 @@
 {
-  "completed_at_utc": "2026-11-05T11:06:22.264079+00:00",
+  "completed_at_utc": "2026-11-09T09:16:02.198694+00:00",
   "retrieval_mode": "keyword-only fallback (temporary seeded SQLite)",
   "question_count": 10,
   "metrics": {
@@ -14,8 +14,7 @@
       "case_id": "return_window",
       "expected_source": "knowledge/returns_policy.md",
       "retrieved_sources": [
-        "knowledge/returns_policy.md",
-        "knowledge/payments_policy.md"
+        "knowledge/returns_policy.md"
       ],
       "rank": 1,
       "expected_fact_in_retrieved_chunk": true
@@ -44,8 +43,7 @@
       "case_id": "refund_timing",
       "expected_source": "knowledge/returns_policy.md",
       "retrieved_sources": [
-        "knowledge/returns_policy.md",
-        "knowledge/payments_policy.md"
+        "knowledge/returns_policy.md"
       ],
       "rank": 1,
       "expected_fact_in_retrieved_chunk": true
@@ -54,8 +52,7 @@
       "case_id": "return_exclusions",
       "expected_source": "knowledge/returns_policy.md",
       "retrieved_sources": [
-        "knowledge/returns_policy.md",
-        "knowledge/payments_policy.md"
+        "knowledge/returns_policy.md"
       ],
       "rank": 1,
       "expected_fact_in_retrieved_chunk": true
@@ -64,10 +61,7 @@
       "case_id": "cancel_confirmation",
       "expected_source": "knowledge/cancellations_policy.md",
       "retrieved_sources": [
-        "knowledge/cancellations_policy.md",
-        "knowledge/shipping_policy.md",
-        "knowledge/payments_policy.md",
-        "knowledge/returns_policy.md"
+        "knowledge/cancellations_policy.md"
       ],
       "rank": 1,
       "expected_fact_in_retrieved_chunk": true
@@ -76,8 +70,7 @@
       "case_id": "payment_simulation",
       "expected_source": "knowledge/payments_policy.md",
       "retrieved_sources": [
-        "knowledge/payments_policy.md",
-        "knowledge/returns_policy.md"
+        "knowledge/payments_policy.md"
       ],
       "rank": 1,
       "expected_fact_in_retrieved_chunk": true
@@ -86,10 +79,7 @@
       "case_id": "shipping_demo",
       "expected_source": "knowledge/shipping_policy.md",
       "retrieved_sources": [
-        "knowledge/shipping_policy.md",
-        "knowledge/support_policy.md",
-        "knowledge/returns_policy.md",
-        "products/SKU-901"
+        "knowledge/shipping_policy.md"
       ],
       "rank": 1,
       "expected_fact_in_retrieved_chunk": true
@@ -98,9 +88,7 @@
       "case_id": "support_timing",
       "expected_source": "knowledge/support_policy.md",
       "retrieved_sources": [
-        "knowledge/support_policy.md",
-        "knowledge/payments_policy.md",
-        "knowledge/returns_policy.md"
+        "knowledge/support_policy.md"
       ],
       "rank": 1,
       "expected_fact_in_retrieved_chunk": true
@@ -109,10 +97,7 @@
       "case_id": "product_keyboard",
       "expected_source": "products/SKU-201",
       "retrieved_sources": [
-        "products/SKU-201",
-        "knowledge/support_policy.md",
-        "knowledge/shipping_policy.md",
-        "knowledge/returns_policy.md"
+        "products/SKU-201"
       ],
       "rank": 1,
       "expected_fact_in_retrieved_chunk": true
