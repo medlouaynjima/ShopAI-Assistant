@@ -91,7 +91,9 @@ def evaluate(use_postgres: bool = False) -> dict:
         },
         "cases": cases,
         "limitations": [
-            "No embeddings or vector search are exercised by this local benchmark.",
+            *([] if use_postgres else [
+                "No embeddings or vector search are exercised by this local benchmark.",
+            ]),
             "Questions and expected sources are hand-authored from this repository's demo policies and catalog.",
         ],
     }

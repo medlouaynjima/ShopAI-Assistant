@@ -142,7 +142,6 @@
     }
   ],
   "limitations": [
-    "No embeddings or vector search are exercised by this local benchmark.",
     "Questions and expected sources are hand-authored from this repository's demo policies and catalog."
   ]
 }

@@ -1,6 +1,6 @@
 # ShopAssist RAG implementation and evaluation
 
-**Date:** 5 November 2026
+**Date:** 9 November 2026 (reviewed)
 
 ## Implemented
 
@@ -27,4 +27,4 @@ The lowest-ranked question was “Who pays shipping if an item arrived defective
 
 ## Remaining acceptance work
 
-The local PostgreSQL/pgvector index is now operational and contains 21 embedded chunks. Docker Desktop was started and the local database role was aligned to the existing Compose credential; no database records were deleted or changed as part of that credential correction. The measured hybrid results matched the keyword baseline on this small test set, so the benchmark confirms the vector path works but does not show a quality lift. Expand the question set and include paraphrases/ambiguous queries before making a broader quality claim.
+The last recorded PostgreSQL/pgvector evaluation found 21 embedded chunks. The measured hybrid results matched the keyword baseline on this small test set, so the benchmark confirms the vector path worked at evaluation time but does not show a quality lift. The current environment cannot reach the Docker engine, so the live database index was not revalidated during this review. Expand the question set and include paraphrases/ambiguous queries before making a broader quality claim.
