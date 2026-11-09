@@ -18,7 +18,7 @@ Date: 9 November 2026 (updated)
 - Python compile check for changed backend modules: passed.
 - The running local storefront and API were verified at `127.0.0.1:3000` and `127.0.0.1:8002`: storefront HTTP 200, API `/health` HTTP 200, API `/ready` HTTP 200 with database `ok` and optional cache `degraded`.
 - `docker compose config --quiet`: passed. Docker daemon access was denied in the current environment, so full local Compose startup could not be verified. The CI smoke workflow is configured, but its hosted run has not happened yet.
-- `npm run typecheck` and `npm run build`: passed. Python compilation passed. The local Python suite passed 102 tests with one skip; one API workflow test was deselected because its Windows TestClient portal stalled before the first request. PostgreSQL integration and the SDK's async MCP client smoke were not verified locally. Synchronous MCP authorization checks passed.
+- `npm run typecheck` and `npm run build`: passed. Python compilation passed. The latest broad local Python suite passed 104 tests, skipped the live Redis check because Redis was unreachable, and deselected one API workflow test because its Windows TestClient portal stalled before the first request. PostgreSQL integration and the SDK's async MCP client smoke were not verified locally. Synchronous MCP authorization checks passed.
 - A synthetic trace containing no customer content was attempted. Both tracing clients initialized, but LangSmith and Langfuse endpoints could not resolve because external DNS/network access is unavailable here; delivery was not verified.
 
 ## Operational limits and follow-up

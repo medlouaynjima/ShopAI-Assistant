@@ -502,7 +502,7 @@ RMA-1000   | ORD-1009  | defective    | approved | $89.99
 pytest tests/ -v --tb=short
 ```
 
-Run the suite with `pytest tests/ -v --tb=short`. PostgreSQL integration requires a reachable `TEST_DATABASE_URL`. Latest local run: **102 passed, 1 skipped, 1 deselected**. The deselected API workflow test blocks before its first request while Starlette/AnyIO initializes the Windows test portal under the available Python 3.14 runtime; PostgreSQL integration was not run without its test server. `npm run typecheck`, `npm run build`, and Python compilation passed.
+Run the suite with `pytest tests/ -v --tb=short`. PostgreSQL integration requires a reachable `TEST_DATABASE_URL`; the shared Redis rate-limit integration test requires `REDIS_URL`. Latest broad local run: **104 passed, 1 skipped, 1 deselected**. The Redis integration test skipped because Redis was unreachable; the API workflow test was deselected because Starlette/AnyIO's Windows test portal stalls before the first request. PostgreSQL integration was not run locally. `npm run typecheck`, `npm run build`, and Python compilation passed.
 
 | Category | Coverage |
 |---|---|---|
