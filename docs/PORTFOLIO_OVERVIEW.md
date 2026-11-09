@@ -71,8 +71,9 @@ flowchart LR
 | Live routing | 110/110 (100%), up from 101/110 (91.8%) | Groq supervisor classification/routing on the project's 110-case dataset |
 | RAG retrieval | Recall@1 90%; Recall@3/5 100%; MRR 0.95 | Ten known-answer questions; hybrid pgvector run matched keyword baseline |
 | Security/deployment checks | 10 focused Phase 5 checks passed; Phase 4 report lists its focused checks | These checks do not establish production security |
-| Full agent answer quality | Inconclusive | The live quality evaluation stopped on provider rate limits; no pass rate is claimed |
-| Docker startup | Not locally verified | Docker Desktop engine was unavailable during this session; CI smoke workflow is configured |
+| Full agent answer quality | 16/16 scored cases pass phrase-based answer and policy assertions; 16 tool selections, 14 applicable argument checks, 15 applicable executions | Small project-owned synthetic set; not an independent semantic evaluation or production reliability claim |
+| Docker startup | Compose configuration validates; app API and storefront returned HTTP 200 locally | Docker daemon is inaccessible in this environment, so full Compose startup is still unverified |
+| Support operations | 20/20 deterministic tool/safety checks; 3 isolated analytics/review tests | Sample database only; metrics describe recorded demo operations |
 
 Detailed evidence: [routing evaluation](../evaluation/PHASE1_REPORT.md), [RAG evaluation](../evaluation/RAG_REPORT.md), [security report](../evaluation/PHASE4_SECURITY_REPORT.md), and [deployment report](../evaluation/PHASE5_DEPLOYMENT_REPORT.md).
 

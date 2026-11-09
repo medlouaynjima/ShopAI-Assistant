@@ -34,4 +34,4 @@ Show the workflow diagram and the redacted tracing dashboard if external trace d
 
 **3:25–4:00 — Evidence and limits**
 
-Show the 110-case routing comparison (91.8% baseline to 100%) and 10-question RAG retrieval results (Recall@3 100%). State plainly that end-to-end LLM answer quality remains inconclusive and that payments, shipping, and current catalog/orders are demo integrations/data.
+Show the 110-case routing comparison (91.8% baseline to 100%), 16-case live agent-quality checks, 20 deterministic workflow checks, and 10-question RAG retrieval results (Recall@3 100%). State plainly that the agent-quality assertions are phrase-checked on a small synthetic set, not an independent semantic benchmark; payments, shipping, and current catalog/orders are demo integrations/data.

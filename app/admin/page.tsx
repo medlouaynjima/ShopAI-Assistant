@@ -107,7 +107,7 @@ export default function AdminPage() {
 
   const loadData = useCallback(async () => {
     const params = new URLSearchParams(Object.entries(ticketFilters).filter(([, value]) => value));
-    const dateParams = new URLSearchParams();
+    const dateParams = new URLSearchParams(Object.entries(ticketFilters).filter(([, value]) => value));
     if (dateRange.from) dateParams.set("date_from", dateRange.from);
     if (dateRange.to) dateParams.set("date_to", dateRange.to);
     const [summary, ticketRows, returnRows, auditRows, metrics, qualityRows] = await Promise.all([

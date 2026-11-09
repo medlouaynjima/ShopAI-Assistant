@@ -117,6 +117,12 @@ class ConversationService:
                 (customer_email.strip().lower(), session_id),
             )
             deleted = cursor.rowcount
+            # Clearing a conversation also removes its customer-linked agent telemetry,
+            # feedback, and derived quality reviews via the turn foreign-key cascades.
+            conn.execute(
+                "DELETE FROM customer_agent_turns WHERE customer_email = ? AND session_id = ?",
+                (customer_email.strip().lower(), session_id),
+            )
             conn.commit()
             return deleted
         except Exception:

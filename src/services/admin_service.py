@@ -14,7 +14,17 @@ TICKET_FIELDS = "ticket_id, customer_email, order_id, description, status, creat
 
 
 class AdminService:
-    def analytics(self, date_from: str | None = None, date_to: str | None = None) -> dict:
+    def analytics(
+        self, date_from: str | None = None, date_to: str | None = None,
+        status: str | None = None, category: str | None = None,
+        priority: str | None = None,
+    ) -> dict:
+        if status and status not in ALLOWED_TICKET_STATUSES:
+            raise ValueError("Unsupported ticket status.")
+        if category and category not in ALLOWED_TICKET_CATEGORIES:
+            raise ValueError("Unsupported ticket category.")
+        if priority and priority not in ALLOWED_TICKET_PRIORITIES:
+            raise ValueError("Unsupported ticket priority.")
         def as_bound(value: str | None, end: bool = False) -> str | None:
             if not value:
                 return None
@@ -24,20 +34,27 @@ class AdminService:
         conn = get_connection()
         try:
             clauses, params = [], []
+            turn_clauses, turn_params = [], []
+            for column, value in (("status", status), ("category", category), ("priority", priority)):
+                if value:
+                    clauses.append(f"{column} = ?")
+                    params.append(value)
             if lower:
                 clauses.append("created_at >= ?"); params.append(lower)
+                turn_clauses.append("created_at >= ?"); turn_params.append(lower)
             if upper:
                 clauses.append("created_at <= ?"); params.append(upper)
+                turn_clauses.append("created_at <= ?"); turn_params.append(upper)
             where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
             tickets = [dict(row) for row in conn.execute(
                 f"SELECT category, priority, status, created_at, first_staff_activity_at, resolved_at, reopened_count FROM support_tickets{where}", params
             ).fetchall()]
             turns = [dict(row) for row in conn.execute(
-                f"SELECT turn_id, outcome, tool_count, tool_failures, latency_ms, created_at FROM customer_agent_turns{where}", params
+                f"SELECT turn_id, outcome, tool_count, tool_failures, latency_ms, created_at FROM customer_agent_turns{' WHERE ' + ' AND '.join(turn_clauses) if turn_clauses else ''}", turn_params
             ).fetchall()]
-            feedback_where, feedback_params = where, list(params)
+            turn_where = " WHERE " + " AND ".join("t." + clause for clause in turn_clauses) if turn_clauses else ""
             feedback = conn.execute(
-                f"SELECT f.feedback FROM conversation_feedback f JOIN customer_agent_turns t ON t.turn_id=f.turn_id{(' WHERE ' + ' AND '.join('t.' + c.split(' ', 1)[0] + ' ' + c.split(' ', 1)[1] for c in clauses)) if clauses else ''}", feedback_params
+                f"SELECT f.feedback FROM conversation_feedback f JOIN customer_agent_turns t ON t.turn_id=f.turn_id{turn_where}", turn_params
             ).fetchall()
             def average_minutes(values: list[float]) -> float | None:
                 return round(sum(values) / len(values), 1) if values else None
@@ -68,7 +85,7 @@ class AdminService:
                 "average_agent_latency_ms": round(sum(row["latency_ms"] for row in turns) / len(turns)) if turns else None,
                 "customer_confirmed_helpful_rate": round(explicit_feedback.count("helpful") / len(explicit_feedback), 4) if explicit_feedback else None,
                 "feedback_count": len(explicit_feedback), "reopened_tickets": sum(row["reopened_count"] for row in tickets),
-                "definitions": {"first_staff_activity": "Ticket moved to in progress or internal note added; not a customer-facing reply.", "escalation_rate": "Ticket-creating agent turns divided by authenticated agent turns.", "resolution": "Tickets explicitly marked resolved by an operator.", "helpful_rate": "Explicit helpful customer feedback divided by all submitted feedback."},
+                "definitions": {"first_staff_activity": "Ticket moved to in progress or internal note added; not a customer-facing reply.", "escalation_rate": "Ticket-creating agent turns divided by authenticated agent turns, for the selected date range.", "resolution": "Tickets explicitly marked resolved by an operator.", "helpful_rate": "Explicit helpful customer feedback divided by all submitted feedback.", "ticket_filters": "Ticket status/category/priority filters apply to ticket counts, backlog, staff timing, and reopen metrics. Agent-turn measures use the selected date range."},
             }
         finally:
             conn.close()

@@ -502,7 +502,7 @@ RMA-1000   | ORD-1009  | defective    | approved | $89.99
 pytest tests/ -v --tb=short
 ```
 
-Run the suite with `pytest tests/ -v --tb=short`. PostgreSQL integration requires a reachable `TEST_DATABASE_URL`; the current machine's configured PostgreSQL service was unreachable during the latest evaluation work. Focused routing, parsing, evaluator, and database-error-sanitization checks passed (**22 passed**); Python compilation and TypeScript checking passed.
+Run the suite with `pytest tests/ -v --tb=short`. PostgreSQL integration requires a reachable `TEST_DATABASE_URL`. Latest local run: **102 passed, 1 skipped, 1 deselected**. The deselected API workflow test blocks before its first request while Starlette/AnyIO initializes the Windows test portal under the available Python 3.14 runtime; PostgreSQL integration was not run without its test server. `npm run typecheck`, `npm run build`, and Python compilation passed.
 
 | Category | Coverage |
 |---|---|---|

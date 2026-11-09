@@ -43,6 +43,10 @@ def test_turn_feedback_is_customer_scoped_and_reflected_in_analytics(isolated_db
     assert analytics["authenticated_agent_turns"] == 1
     assert analytics["customer_confirmed_helpful_rate"] == 1
     assert analytics["average_agent_latency_ms"] == 350
+    assert service.clear_session("ops@example.test", "default") == 2
+    cleared_metrics = AdminService().analytics()
+    assert cleared_metrics["authenticated_agent_turns"] == 0
+    assert cleared_metrics["feedback_count"] == 0
 
 
 def test_quality_queue_can_be_reviewed_and_cleared(isolated_db):
@@ -67,9 +71,9 @@ def test_ticket_staff_timing_notes_assignment_and_reopen_are_measured(isolated_d
     conn = isolated_db.get_connection()
     try:
         conn.execute("""INSERT INTO support_tickets
-            (ticket_id, customer_email, order_id, description, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)""",
-            (ticket_id, "ops@example.test", None, "Delivery is delayed", "open", (now - timedelta(minutes=20)).isoformat()))
+            (ticket_id, customer_email, order_id, description, status, created_at, category, priority)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (ticket_id, "ops@example.test", None, "Delivery is delayed", "open", (now - timedelta(minutes=20)).isoformat(), "shipping", "normal"))
         conn.commit()
     finally:
         conn.close()
@@ -85,4 +89,8 @@ def test_ticket_staff_timing_notes_assignment_and_reopen_are_measured(isolated_d
     metrics = admin.analytics()
     assert metrics["reopened_tickets"] == 1
     assert metrics["average_minutes_to_first_staff_activity"] is not None
+    filtered = admin.analytics(status="open", category="shipping", priority="normal")
+    assert filtered["ticket_count"] == 1
+    assert filtered["backlog"] == 1
+    assert filtered["ticket_by_category"] == {"shipping": 1}
 

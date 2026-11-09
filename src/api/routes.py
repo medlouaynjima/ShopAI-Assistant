@@ -139,11 +139,14 @@ async def get_admin_llm_metrics(
 async def get_admin_analytics(
         date_from: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
         date_to: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+        status_filter: str | None = Query(default=None, alias="status", max_length=20),
+        category_filter: str | None = Query(default=None, alias="category", max_length=24),
+        priority_filter: str | None = Query(default=None, alias="priority", max_length=12),
         x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
 ):
         _require_admin_key(x_admin_key)
         try:
-            return admin_service.analytics(date_from, date_to)
+            return admin_service.analytics(date_from, date_to, status_filter, category_filter, priority_filter)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail="Dates must be valid YYYY-MM-DD values.") from exc
 
